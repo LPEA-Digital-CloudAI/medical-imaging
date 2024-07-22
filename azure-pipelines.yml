@@ -13,7 +13,8 @@ variables:
 - group: ml-artreg-digital-pathology-p
 
 steps:
-- task: MCCVaultIntegration@1
+- task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+  displayName: 'MCC Vault Integration'
   inputs:
     vaultActionType: 'gcpCreds'
     gcpSecretType: 'token'
