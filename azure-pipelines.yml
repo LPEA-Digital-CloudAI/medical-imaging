@@ -22,3 +22,10 @@ steps:
     RoleId: $(Vault.RoleId)
     SecretId: $(Vault.SecretId)
     HostUri: $(Vault.Address)
+#Your build pipeline references an undefined variable named ‘GCR.Name’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+
+
+- script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+  displayName: 'Authenticate to Container Registry'
+  env:
+    SA_TOKEN: $(MCCVaultIntegration@1.Vault.VaultResult)
