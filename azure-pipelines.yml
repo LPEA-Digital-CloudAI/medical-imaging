@@ -7,7 +7,7 @@ trigger:
 - main 
 
 pool:
-  vmImage: ubuntu-latest
+  name: MCC Applications 
 
 variables:
 - group: ml-artreg-digital-pathology-p
