@@ -1,4 +1,5 @@
 # Starter pipeline
+
 # Start with a minimal pipeline that you can customize to build and deploy your code.
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
@@ -9,11 +10,15 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+- group: ml-artreg-digital-pathology-p
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+steps:
+- task: MCCVaultIntegration@1
+  inputs:
+    vaultActionType: 'gcpCreds'
+    gcpSecretType: 'token'
+    Namespace: $(Vault.Namespace)
+    RoleId: $(Vault.RoleId)
+    SecretId: $(Vault.SecretId)
+    HostUri: $(Vault.Address)
