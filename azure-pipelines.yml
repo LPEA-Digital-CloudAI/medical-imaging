@@ -3,30 +3,40 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger:
-- main 
-
-pool:
-  name: MCC Applications 
-
 variables:
 - group: ml-artreg-digital-pathology-p
 
-steps:
-- task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
-  displayName: 'MCC Vault Integration'
-  inputs:
-    vaultActionType: 'gcpCreds'
-    gcpSecretType: 'token'
-    GcpCredRoleset: $(Vault.Roleset)
-    Namespace: $(Vault.Namespace)
-    RoleId: $(Vault.RoleId)
-    SecretId: $(Vault.SecretId)
-    HostUri: $(Vault.Address)
+stages:
+ - stage: stage1
+   pool:
+    name: Azure Pipelines
+   jobs:
+    - job: Builds
+      steps:
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publish Pipeline Artifact'
+          inputs:
+            targetPath: $(System.DefaultWorkingDirectory)
+
+ - stage: stage2
+   pool:
+    name: MCC Applications
+   jobs:
+    - job: Builds
+      steps:
+        - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+          displayName: 'MCC Vault Integration'
+          inputs:
+            vaultActionType: 'gcpCreds'
+            gcpSecretType: 'token'
+            GcpCredRoleset: $(Vault.Roleset)
+            Namespace: $(Vault.Namespace)
+            RoleId: $(Vault.RoleId)
+            SecretId: $(Vault.SecretId)
+            HostUri: $(Vault.Address)
 #Your build pipeline references an undefined variable named ‘GCR.Name’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
 
-
-- script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
-  displayName: 'Authenticate to Container Registry'
-  env:
-    SA_TOKEN: $(MCCVaultIntegration@1.Vault.VaultResult)
+        - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+          displayName: 'Authenticate to Container Registry'
+          env:
+            SA_TOKEN: $(MCCVaultIntegration@1.Vault.VaultResult)
