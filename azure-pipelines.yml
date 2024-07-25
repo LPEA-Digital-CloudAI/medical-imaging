@@ -33,6 +33,7 @@ stages:
             artifactName: 'github_oss'
             targetPath: '$(System.DefaultWorkingDirectory)'
         - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+          name: VaultOutput
           displayName: 'MCC Vault Integration'
           inputs:
             vaultActionType: 'gcpCreds'
@@ -42,7 +43,7 @@ stages:
             RoleId: $(Vault.RoleId)
             SecretId: $(Vault.SecretId)
             HostUri: $(Vault.Address)
-        - bash: echo $(mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1.Vault.VaultResult)
+        - bash: echo $(VaultOutput.VaultResult)
         - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
           displayName: 'Authenticate to Container Registry'
           env:
