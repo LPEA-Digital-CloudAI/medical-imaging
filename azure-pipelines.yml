@@ -57,6 +57,6 @@ stages:
         - task: Docker@2
           displayName: 'Build GitHub code'
           inputs:
-            repository: '$(GCR.Name)/github:v1'
+            repository: '$(GCR.Name)/github'
             command: build
             Dockerfile: pathology/transformation_pipeline/Dockerfile
