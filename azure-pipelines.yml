@@ -22,11 +22,13 @@ stages:
             targetPath: $(System.DefaultWorkingDirectory)
             artifact: 'github_oss'
         - task: Docker@2
-          displayName: 'Build GitHub code'
+          displayName: 'Build debian base image'
           inputs:
-            repository: '$(GCR.Name)/github'
+            repository: '$(GCR.Name)/base_image_debian'
             command: build
-            Dockerfile: pathology/transformation_pipeline/Dockerfile
+            Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
+        - script: 'docker image ls'
+          displayName: 'List Docker images'
 
  - stage: ADO
    pool:
