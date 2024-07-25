@@ -47,4 +47,4 @@ stages:
         - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
           displayName: 'Authenticate to Container Registry'
           env:
-            SA_TOKEN: $(mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1.Vault.VaultResult)
+            SA_TOKEN: $(VaultOutput.VaultResult)
