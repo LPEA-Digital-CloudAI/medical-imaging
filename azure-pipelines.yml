@@ -6,6 +6,9 @@
 variables:
 - group: ml-artreg-digital-pathology-p
 
+trigger: 
+- main
+
 stages:
  - stage: GitHub
    pool:
@@ -43,8 +46,17 @@ stages:
             RoleId: $(Vault.RoleId)
             SecretId: $(Vault.SecretId)
             HostUri: $(Vault.Address)
+
         - bash: echo $(VaultOutput.VaultResult)
+
         - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
           displayName: 'Authenticate to Container Registry'
           env:
             SA_TOKEN: $(VaultOutput.VaultResult)
+
+        - task: Docker@2
+          displayName: 'Build GitHub code'
+          inputs:
+            repository: '$(GCR.Name)/github:v1'
+            command: build
+            Dockerfile: Dockerfile
