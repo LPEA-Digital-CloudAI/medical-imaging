@@ -17,6 +17,7 @@ stages:
           displayName: 'Publish Pipeline Artifact'
           inputs:
             targetPath: $(System.DefaultWorkingDirectory)
+            artifact: 'github_oss'
 
  - stage: stage2
    pool:
@@ -24,6 +25,13 @@ stages:
    jobs:
     - job: Builds
       steps:
+        - checkout: none
+
+        - task: DownloadPipelineArtifact@2
+          displayName: 'Download Pipeline Artifact'
+          inputs:
+            artifactName: 'github_oss'
+            targetPath: '$(System.DefaultWorkingDirectory)'
         - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
           displayName: 'MCC Vault Integration'
           inputs:
