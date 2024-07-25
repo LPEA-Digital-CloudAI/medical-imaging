@@ -59,4 +59,4 @@ stages:
           inputs:
             repository: '$(GCR.Name)/github:v1'
             command: build
-            Dockerfile: Dockerfile
+            Dockerfile: pathology/transformation_pipeline/Dockerfile
