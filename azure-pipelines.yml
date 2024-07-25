@@ -34,6 +34,7 @@ stages:
             targetPath: '$(System.DefaultWorkingDirectory)'
         - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
           displayName: 'MCC Vault Integration'
+          name: Vault
           inputs:
             vaultActionType: 'gcpCreds'
             gcpSecretType: 'token'
@@ -42,7 +43,7 @@ stages:
             RoleId: $(Vault.RoleId)
             SecretId: $(Vault.SecretId)
             HostUri: $(Vault.Address)
-
+        - bash: echo $(Vault.VaultResult)
         - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
           displayName: 'Authenticate to Container Registry'
           env:
