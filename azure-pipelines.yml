@@ -7,11 +7,11 @@ variables:
 - group: ml-artreg-digital-pathology-p
 
 stages:
- - stage: stage1
+ - stage: GitHub
    pool:
     name: Azure Pipelines
    jobs:
-    - job: Builds
+    - job: FetchGitHub
       steps:
         - task: PublishPipelineArtifact@1
           displayName: 'Publish Pipeline Artifact'
@@ -19,11 +19,11 @@ stages:
             targetPath: $(System.DefaultWorkingDirectory)
             artifact: 'github_oss'
 
- - stage: stage2
+ - stage: ADO
    pool:
     name: MCC Applications
    jobs:
-    - job: Builds
+    - job: BuildInADO
       steps:
         - checkout: none
 
@@ -42,9 +42,8 @@ stages:
             RoleId: $(Vault.RoleId)
             SecretId: $(Vault.SecretId)
             HostUri: $(Vault.Address)
-#Your build pipeline references an undefined variable named ‘GCR.Name’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
 
         - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
           displayName: 'Authenticate to Container Registry'
           env:
-            SA_TOKEN: $(MCCVaultIntegration@1.Vault.VaultResult)
+            SA_TOKEN: $(mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1.Vault.VaultResult)
