@@ -23,25 +23,8 @@ stages:
             repository: '$(GCR.Name)/base_image_debian'
             command: build
             Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
-            tags: 'latest'
-        - task: Bash@3
-          displayName: Save Docker Image
-          inputs:
-            targetType: 'inline'
-            script: |
-             docker save $(GCR.Name)/base_image_debian:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
-        - task: PublishPipelineArtifact@1
-          inputs:
-            targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
-            artifact: 'IMAGE_ARTIFACT'
-            #publishLocation: 'pipeline'             
-        - task: PublishPipelineArtifact@1
-          displayName: 'Publish Pipeline Artifact'
-          enabled: true
-          name: Publish
-          inputs:
-            targetPath: $(System.DefaultWorkingDirectory)
-            artifact: 'github_oss'        
+            tags: 'latest'         
+
         - task: Docker@2
           displayName: 'Build open cv base image'
           enabled: true
@@ -70,6 +53,17 @@ stages:
             Dockerfile: pathology/transformation_pipeline/Dockerfile
             tags: 'latest'
             arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
+        - task: Bash@3
+          displayName: Save Docker Image
+          inputs:
+            targetType: 'inline'
+            script: |
+             docker save $(GCR.Name)/test_transformation:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
+        - task: PublishPipelineArtifact@1
+          inputs:
+            targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
+            artifact: 'IMAGE_ARTIFACT'
+            #publishLocation: 'pipeline'                
 
  - stage: ADO
    pool:
@@ -90,7 +84,7 @@ stages:
             targetType: 'inline'
             script: |      
               docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
-              docker tag $(GCR.Name)/base_image_debian:latest $(GCR.Name)/base_image_debian:latest      
+              docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_transformation:latest      
 
         - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
           name: VaultOutput
@@ -120,6 +114,6 @@ stages:
         - task: Docker@2
           displayName: 'Publish Container Image'
           inputs:
-            repository: '$(GCR.Name)/base_image_debian'
+            repository: '$(GCR.Name)/test_transformation'
             command: push
             tags: 'latest'       
