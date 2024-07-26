@@ -16,13 +16,6 @@ stages:
    jobs:
     - job: FetchGitHub
       steps:
-        - task: PublishPipelineArtifact@1
-          displayName: 'Publish Pipeline Artifact'
-          name: Publish
-          inputs:
-            targetPath: $(System.DefaultWorkingDirectory)
-            artifact: 'github_oss'
-
         - task: Docker@2
           name: Debian
           displayName: 'Build debian base image'
@@ -31,9 +24,27 @@ stages:
             command: build
             Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
             tags: 'latest'
-        
+        - task: Bash@3
+          displayName: Save Docker Image
+          inputs:
+            targetType: 'inline'
+            script: |
+             docker save $(GCR.Name)/base_image_debian:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
+        - task: PublishPipelineArtifact@1
+          inputs:
+            targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
+            artifact: 'IMAGE_ARTIFACT'
+            #publishLocation: 'pipeline'             
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publish Pipeline Artifact'
+          enabled: false
+          name: Publish
+          inputs:
+            targetPath: $(System.DefaultWorkingDirectory)
+            artifact: 'github_oss'        
         - task: Docker@2
           displayName: 'Build open cv base image'
+          enabled: false
           inputs:
             repository: '$(GCR.Name)/base_image_open_cv'
             command: build
@@ -42,21 +53,24 @@ stages:
             arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_debian:latest'
         - task: Docker@2
           displayName: 'Build transformation base image'
+          enabled: false
           inputs:
             repository: '$(GCR.Name)/base_image_transformation'
             command: build
             Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
             tags: 'latest'
             arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_open_cv:latest'
+
         - task: Docker@2
           displayName: 'Build transformation image'
+          enabled: false
           inputs:
             repository: '$(GCR.Name)/test_transformation'
             command: build
             Dockerfile: pathology/transformation_pipeline/Dockerfile
             tags: 'latest'
             arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
-       
+
         - script: 'docker image ls'
           displayName: 'List Docker images'
 
@@ -69,7 +83,20 @@ stages:
         - checkout: none
 
         - task: DownloadPipelineArtifact@2
+          inputs:
+            buildType: 'current'
+            artifactName: 'MY_ARTIFACT'
+            targetPath: '$(System.DefaultWorkingDirectory)'
+        - task: Bash@3
+          displayName: Load Docker Image
+          inputs:
+            targetType: 'inline'
+            script: |      
+              docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
+              docker tag $(GCR.Name)/base_image_debian:latest $(GCR.Name)/base_image_debian:latest      
+        - task: DownloadPipelineArtifact@2
           displayName: 'Download Pipeline Artifact'
+          enabled: false
           inputs:
             artifactName: 'github_oss'
             targetPath: '$(System.DefaultWorkingDirectory)'
@@ -91,3 +118,15 @@ stages:
           displayName: 'Authenticate to Container Registry'
           env:
             SA_TOKEN: $(VaultOutput.VaultResult)
+
+        - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+          displayName: 'Prisma Cloud Compute Scan'
+          inputs:
+            twistlockService: 'Prisma Compute'
+            artifact: '$(GCR.Name)/base_image_debian:latest'
+          continueOnError: false
+        - task: Docker@2
+          displayName: 'Publish Container Image'
+          inputs:
+            repository: '$(GCR.Name)/base_image_debian:latest'
+            command: push       
