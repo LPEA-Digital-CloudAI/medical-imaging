@@ -30,7 +30,7 @@ stages:
             Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
             tags: 'latest'
         
-        - bash: echo $(Debian.DockerOuput)
+        - bash: echo $(Debian.DockerOutput)
         - task: Docker@2
           displayName: 'Build open cv base image'
           inputs:
