@@ -18,9 +18,13 @@ stages:
       steps:
         - task: PublishPipelineArtifact@1
           displayName: 'Publish Pipeline Artifact'
+          name: Publish
           inputs:
             targetPath: $(System.DefaultWorkingDirectory)
             artifact: 'github_oss'
+
+        - bash: echo $(Publish.artifact)
+
         - task: Docker@2
           name: Debian
           displayName: 'Build debian base image'
