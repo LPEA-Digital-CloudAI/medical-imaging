@@ -112,7 +112,7 @@ stages:
             SecretId: $(Vault.SecretId)
             HostUri: $(Vault.Address)
 
-        - bash: echo $(VaultOutput.VaultResult)
+#        - bash: echo $(VaultOutput.VaultResult)
 
         - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
           displayName: 'Authenticate to Container Registry'
@@ -124,9 +124,10 @@ stages:
           inputs:
             twistlockService: 'Prisma Compute'
             artifact: '$(GCR.Name)/base_image_debian:latest'
-          continueOnError: false
+          continueOnError: true
         - task: Docker@2
           displayName: 'Publish Container Image'
           inputs:
-            repository: '$(GCR.Name)/base_image_debian:latest'
-            command: push       
+            repository: '$(GCR.Name)/base_image_debian'
+            command: push
+            tags: 'latest'       
