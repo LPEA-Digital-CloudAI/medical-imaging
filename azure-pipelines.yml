@@ -22,11 +22,36 @@ stages:
             targetPath: $(System.DefaultWorkingDirectory)
             artifact: 'github_oss'
         - task: Docker@2
+          name: Debian
           displayName: 'Build debian base image'
           inputs:
             repository: '$(GCR.Name)/base_image_debian'
             command: build
             Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
+            tags: 'latest'
+        
+        - bash: echo $(Debian.DockerOuput)
+        - task: Docker@2
+          displayName: 'Build open cv base image'
+          inputs:
+            repository: '$(GCR.Name)/base_image_open_cv'
+            command: build
+            Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
+            arguments: '--build-arg BASE_CONTAINER=$(Debian.repository)'
+        - task: Docker@2
+          displayName: 'Build transformation base image'
+          inputs:
+            repository: '$(GCR.Name)/base_image_transformation'
+            command: build
+            Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
+            arguments: '--build-arg '
+        - task: Docker@2
+          displayName: 'Build transformation image'
+          inputs:
+            repository: '$(GCR.Name)/test_transformation'
+            command: build
+            Dockerfile: pathology/transformation_pipeline/Dockerfile
+            arguments: '--build-arg ubuntu_version=18.04 --build-arg qt_version_major=5.12 --build-arg qt_version_full=5.12.4'
         - script: 'docker image ls'
           displayName: 'List Docker images'
 
