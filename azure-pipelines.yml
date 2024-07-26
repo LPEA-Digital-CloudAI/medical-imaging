@@ -37,14 +37,14 @@ stages:
             #publishLocation: 'pipeline'             
         - task: PublishPipelineArtifact@1
           displayName: 'Publish Pipeline Artifact'
-          enabled: false
+          enabled: true
           name: Publish
           inputs:
             targetPath: $(System.DefaultWorkingDirectory)
             artifact: 'github_oss'        
         - task: Docker@2
           displayName: 'Build open cv base image'
-          enabled: false
+          enabled: true
           inputs:
             repository: '$(GCR.Name)/base_image_open_cv'
             command: build
@@ -53,7 +53,7 @@ stages:
             arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_debian:latest'
         - task: Docker@2
           displayName: 'Build transformation base image'
-          enabled: false
+          enabled: true
           inputs:
             repository: '$(GCR.Name)/base_image_transformation'
             command: build
@@ -63,7 +63,7 @@ stages:
 
         - task: Docker@2
           displayName: 'Build transformation image'
-          enabled: false
+          enabled: true
           inputs:
             repository: '$(GCR.Name)/test_transformation'
             command: build
