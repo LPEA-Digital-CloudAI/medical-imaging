@@ -23,7 +23,7 @@ stages:
             targetPath: $(System.DefaultWorkingDirectory)
             artifact: 'github_oss'
 
-        - bash: echo $(Publish.artifact)
+        - bash: echo $(Publish.inputs.artifact)
 
         - task: Docker@2
           name: Debian
