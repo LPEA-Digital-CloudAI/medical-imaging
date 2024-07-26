@@ -71,9 +71,6 @@ stages:
             tags: 'latest'
             arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
 
-        - script: 'docker image ls'
-          displayName: 'List Docker images'
-
  - stage: ADO
    pool:
     name: MCC Applications
@@ -94,12 +91,7 @@ stages:
             script: |      
               docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
               docker tag $(GCR.Name)/base_image_debian:latest $(GCR.Name)/base_image_debian:latest      
-        - task: DownloadPipelineArtifact@2
-          displayName: 'Download Pipeline Artifact'
-          enabled: false
-          inputs:
-            artifactName: 'github_oss'
-            targetPath: '$(System.DefaultWorkingDirectory)'
+
         - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
           name: VaultOutput
           displayName: 'MCC Vault Integration'
