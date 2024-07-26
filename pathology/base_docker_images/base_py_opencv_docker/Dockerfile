@@ -15,6 +15,7 @@
 # The context must be set to the parent directory of the Dockerfile so files in
 # other orchestrator/ subdirectories can be used.
 # E.g. docker build ../ --file=./Dockerfile
+ARG BASE_CONTAINER
 FROM ${BASE_CONTAINER}
 
 RUN apt-get update && \
