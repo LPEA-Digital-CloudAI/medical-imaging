@@ -139,7 +139,6 @@ stages:
       name: Azure Pipelines
     variables:
       PathologyChanged: $[dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged']]
-    condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
     jobs:
       - job: BuildTransformationImages
         displayName: 'Build Transformation Docker Images'
