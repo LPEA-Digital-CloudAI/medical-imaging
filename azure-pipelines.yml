@@ -62,21 +62,18 @@ stages:
                 echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]false"
               fi
               echo "##[endgroup]"
+            name: DetectChanges
             displayName: 'Detect Path Changes'
             continueOnError: false
 
   - stage: BuildILM
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
-    condition: eq(dependencies.PathCheck.outputs['CheckPathChanges.ILMChanged'], 'true')
+    condition: eq(stageDependencies.PathCheck.CheckPathChanges.outputs['DetectChanges.ILMChanged'], 'true')
     jobs:
       - job: BuildILMImages
         displayName: 'Build ILM Docker Images'
         steps:
-          - script: |
-              echo "ILMChanged: $(dependencies.PathCheck.outputs['CheckPathChanges.ILMChanged'])"
-            displayName: 'Print ILMChanged Variable'
-          
           - task: Docker@2
             displayName: 'Build ILM Launcher Image'
             inputs:
@@ -119,15 +116,11 @@ stages:
   - stage: BuildTransformation
     displayName: 'Build Transformation Images'
     dependsOn: PathCheck
-    condition: eq(dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged'], 'true')
+    condition: eq(dependencies.PathCheck.outputs['PathCheck.PathologyChanged'], 'true')
     jobs:
       - job: BuildTransformationImages
         displayName: 'Build Transformation Docker Images'
-        steps:
-          - script: |
-              echo "PathologyChanged: $(dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged'])"
-            displayName: 'Print PathologyChanged Variable'
-          
+        steps:        
           - task: Docker@2
             displayName: 'Build Debian Base Image'
             inputs:
