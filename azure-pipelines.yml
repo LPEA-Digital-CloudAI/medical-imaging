@@ -81,11 +81,9 @@ stages:
               if [ "$(ILMChanged)" == "true" ]; then
                 echo "Building ILM images..."
                 echo "##vso[task.setvariable variable=ConditionalILMBuild.BuildILM;isOutput=false]true"
-                echo "variable set too: variables['ConditionalILMBuild.BuildILM']"
               else
                 echo "No changes in ilm/ directory. Skipping ILM image build."
                 echo "##vso[task.setvariable variable=ConditionalILMBuild.BuildILM;isOutput=false]false"
-                echo "variable set too: variables['ConditionalILMBuild.BuildILM']"
                 exit 0
               fi
             name: ConditionalILMBuild
@@ -141,6 +139,7 @@ stages:
       name: Azure Pipelines
     variables:
       PathologyChanged: $[dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged']]
+    condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
     jobs:
       - job: BuildTransformationImages
         displayName: 'Build Transformation Docker Images'
@@ -148,10 +147,10 @@ stages:
           - script: |
               if [ "$(PathologyChanged)" == "true" ]; then
                 echo "Building Transformation images..."
-                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildPathology;isOutput=true]true"
+                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildPathology;isOutput=false]true"
               else
                 echo "No changes in pathology/ directory. Skipping Transformation image build."
-                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildPathology;isOutput=true]false"
+                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildPathology;isOutput=false]false"
                 exit 0
               fi
             name: ConditionalTransformationBuild
@@ -214,12 +213,10 @@ stages:
               command: push
               tags: 'latest'
 
-  - stage: ADOPublishTransformation
+  - stage: ADO
     displayName: 'Run ADO Tasks'
     dependsOn: BuildTransformation
-    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))    
-    variables:
-      PathologyChanged: $[dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged']]
+    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))
     pool:
       name: MCC Applications
     jobs:
@@ -227,15 +224,13 @@ stages:
         steps:
           - checkout: none
 
-          - task: DownloadPipelineArtifact@2          
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+          - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
               artifactName: 'IMAGE_ARTIFACT'
               targetPath: '$(System.DefaultWorkingDirectory)'
 
-          - task: Bash@3          
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+          - task: Bash@3
             displayName: 'Load Docker Image'
             inputs:
               targetType: 'inline'
@@ -243,8 +238,7 @@ stages:
                 docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
                 docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_transformation:latest      
 
-          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1          
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
             name: VaultOutput
             displayName: 'MCC Vault Integration'
             inputs:
@@ -256,14 +250,12 @@ stages:
               SecretId: $(Vault.SecretId)
               HostUri: $(Vault.Address)
 
-          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'          
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
             displayName: 'Authenticate to Container Registry'
             env:
               SA_TOKEN: $(VaultOutput.VaultResult)
 
-          - task: Docker@2          
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+          - task: Docker@2
             displayName: 'Publish Container Image'
             inputs:
               repository: '$(GCR.Name)/test_transformation'
