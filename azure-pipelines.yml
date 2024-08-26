@@ -33,11 +33,19 @@ stages:
           - checkout: self
           - script: |
               echo "##[group]Checking for changes in ilm/ and pathology/ directories"
+              
+              # Fetch recent commits
+              git fetch --depth=2
+
+              # Get the last two commits
+              LAST_COMMIT=$(git rev-parse HEAD)
+              PREV_COMMIT=$(git rev-parse HEAD^)
+
               # Check changes between the latest commit and its parent
-              git diff --name-only HEAD~1 HEAD > changes.txt
+              git diff --name-only $PREV_COMMIT $LAST_COMMIT > changes.txt
               echo "Changed files:"
               cat changes.txt
-  
+
               # Check for changes in specific directories
               if grep -qE '^ilm/' changes.txt; then
                 echo "Changes detected in ilm/ directory."
