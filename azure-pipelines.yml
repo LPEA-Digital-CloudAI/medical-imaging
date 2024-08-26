@@ -67,6 +67,18 @@ stages:
             displayName: 'Detect Path Changes'
             continueOnError: false
 
+  - stage: PrintPipelineVariables
+    displayName: 'Print Pipeline Variables'
+    dependsOn: PathCheck  # This ensures that the variable is set before this stage runs
+    jobs:
+      - job: PrintVariables
+        displayName: 'Print Pipeline Variables'
+        steps:
+          - script: |
+              echo "ILMChanged value is: $(ILMChanged)"              
+              echo "TransformationChanged value is: $(TransformationChanged)"
+            displayName: 'Print the values of pipeline variables'
+
   - stage: BuildILM
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
