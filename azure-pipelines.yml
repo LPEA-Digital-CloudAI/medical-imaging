@@ -69,6 +69,7 @@ stages:
   - stage: BuildILM
     variables:
       ilmchanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.ILMChanged']]
+    condition: eq("$(ilmchanged)", "true")
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
     jobs:
@@ -125,7 +126,8 @@ stages:
 
   - stage: BuildTransformation
     variables: 
-      pathologychanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
+      pathologychanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]      
+    condition: eq("$(pathologychanged)", "true")
     displayName: 'Build Transformation Images'
     dependsOn: PathCheck
     jobs:
