@@ -61,9 +61,12 @@ stages:
                 echo "No changes in pathology/ directory."
                 echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]false"
               fi
+              echo "ILMChanged: $(ILMChanged)"
+              echo "PathologyChanged: $(PathologyChanged)"
               echo "##[endgroup]"
             displayName: 'Detect Path Changes'
-  
+            continueOnError: false
+
   - stage: BuildILM
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
