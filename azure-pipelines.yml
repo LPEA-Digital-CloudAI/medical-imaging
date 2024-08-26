@@ -1,9 +1,5 @@
 variables:
 - group: ml-artreg-digital-pathology-p
-- name: ILMChanged
-  value: 'false'
-- name: TransformationChanged
-  value: 'false'
 
 trigger:
   branches:
@@ -53,44 +49,50 @@ stages:
               # Check for changes in specific directories
               if grep -qE '^ilm/' changes.txt; then
                 echo "Changes detected in ilm/ directory."
-                echo "##vso[task.setvariable variable=ILMChanged;isOutput=false]true"
+                echo "##vso[task.setvariable variable=ILMChanged;isOutput=true]true"
               else
                 echo "No changes in ilm/ directory."
+                echo "##vso[task.setvariable variable=ILMChanged;isOutput=true]false"
               fi
               if grep -qE '^pathology/' changes.txt; then
                 echo "Changes detected in pathology/ directory."
-                echo "##vso[task.setvariable variable=TransformationChanged;isOutput=false]true"
+                echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]true"
               else
                 echo "No changes in pathology/ directory."
+                echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]false"
               fi
               echo "##[endgroup]"
+            name: ChangedDirectories
             displayName: 'Detect Path Changes'
             continueOnError: false
-
-  - stage: PrintPipelineVariables
-    displayName: 'Print Pipeline Variables'
-    dependsOn: PathCheck  # This ensures that the variable is set before this stage runs
-    jobs:
-      - job: PrintVariables
-        displayName: 'Print Pipeline Variables'
-        steps:
-          - script: |
-              echo "ILMChanged value is: $(ILMChanged)"              
-              echo "TransformationChanged value is: $(TransformationChanged)"
-            displayName: 'Print the values of pipeline variables'
 
   - stage: BuildILM
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
     pool:
       name: Azure Pipelines
-    condition: eq(variables['ILMChanged'], 'true')
+    variables:
+      ILMChanged: $[dependencies.PathCheck.outputs['CheckPathChanges.ILMChanged']]
     jobs:
       - job: BuildILMImages
         displayName: 'Build ILM Docker Images'
         steps:
+          - script: |
+              if [ "$(ILMChanged)" == "true" ]; then
+                echo "Building ILM images..."
+                echo "##vso[task.setvariable variable=ConditionalILMBuild.BuildILM;isOutput=true]true"
+              else
+                echo "No changes in ilm/ directory. Skipping ILM image build."
+                echo "##vso[task.setvariable variable=ConditionalILMBuild.BuildILM;isOutput=true]false"
+                exit 0
+              fi
+            name: ConditionalILMBuild
+            displayName: 'Conditional ILM Image Build'
+            continueOnError: true
+
           - task: Docker@2
             displayName: 'Build ILM Launcher Image'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               repository: '$(GCR.Name)/ilm_launcher'
               command: build
@@ -99,6 +101,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build ILM Worker Image'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               repository: '$(GCR.Name)/ilm_worker'
               command: build
@@ -107,6 +110,7 @@ stages:
 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan ILM Images'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/ilm_launcher:latest,$(GCR.Name)/ilm_worker:latest'
@@ -114,6 +118,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Publish ILM Launcher Image'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               repository: '$(GCR.Name)/test_ilm_launcher'
               command: push
@@ -121,6 +126,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Publish ILM Worker Image'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               repository: '$(GCR.Name)/test_ilm_worker'
               command: push
@@ -131,13 +137,28 @@ stages:
     dependsOn: PathCheck
     pool:
       name: Azure Pipelines
-    condition: eq(variables['TransformationChanged'], 'true')
+    variables:
+      PathologyChanged: $[dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged']]
     jobs:
       - job: BuildTransformationImages
         displayName: 'Build Transformation Docker Images'
         steps:
+          - script: |
+              if [ "$(PathologyChanged)" == "true" ]; then
+                echo "Building Transformation images..."
+                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildPathology;isOutput=true]true"
+              else
+                echo "No changes in pathology/ directory. Skipping Transformation image build."
+                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildPathology;isOutput=true]false"
+                exit 0
+              fi
+            name: ConditionalTransformationBuild
+            displayName: 'Conditional Transformation Image Build'
+            continueOnError: true
+
           - task: Docker@2
             displayName: 'Build Debian Base Image'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/base_image_debian'
               command: build
@@ -146,6 +167,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build OpenCV Base Image'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/base_image_open_cv'
               command: build
@@ -155,6 +177,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build Transformation Base Image'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/base_image_transformation'
               command: build
@@ -164,6 +187,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build Transformation Image'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/test_transformation'
               command: build
@@ -174,6 +198,7 @@ stages:
 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan Transformation Images'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/test_transformation:latest,$(GCR.Name)/base_image_debian:latest,$(GCR.Name)/base_image_open_cv:latest,$(GCR.Name)/base_image_transformation:latest'
@@ -181,15 +206,18 @@ stages:
 
           - task: Docker@2
             displayName: 'Publish Transformation Image'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/test_transformation'
               command: push
               tags: 'latest'
 
-  - stage: ADO
+  - stage: ADOPublishTransformation
     displayName: 'Run ADO Tasks'
     dependsOn: BuildTransformation
-    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))
+    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))    
+    variables:
+      PathologyChanged: $[dependencies.PathCheck.outputs['CheckPathChanges.PathologyChanged']]
     pool:
       name: MCC Applications
     jobs:
@@ -197,13 +225,15 @@ stages:
         steps:
           - checkout: none
 
-          - task: DownloadPipelineArtifact@2
+          - task: DownloadPipelineArtifact@2          
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             inputs:
               buildType: 'current'
               artifactName: 'IMAGE_ARTIFACT'
               targetPath: '$(System.DefaultWorkingDirectory)'
 
-          - task: Bash@3
+          - task: Bash@3          
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             displayName: 'Load Docker Image'
             inputs:
               targetType: 'inline'
@@ -211,7 +241,8 @@ stages:
                 docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
                 docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_transformation:latest      
 
-          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1          
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             name: VaultOutput
             displayName: 'MCC Vault Integration'
             inputs:
@@ -223,12 +254,14 @@ stages:
               SecretId: $(Vault.SecretId)
               HostUri: $(Vault.Address)
 
-          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'          
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             displayName: 'Authenticate to Container Registry'
             env:
               SA_TOKEN: $(VaultOutput.VaultResult)
 
-          - task: Docker@2
+          - task: Docker@2          
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
             displayName: 'Publish Container Image'
             inputs:
               repository: '$(GCR.Name)/test_transformation'
