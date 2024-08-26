@@ -4,7 +4,12 @@ variables:
 trigger:
   branches:
     include:
-      - main
+      - azure-pipelines
+
+pr: 
+  branches:
+    include:
+      - azure-pipelines
   paths:
     include:
       - ilm/*
@@ -12,7 +17,7 @@ trigger:
 
 stages:
   - stage: BuildILM
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), in('ilm', variables['Build.SourceDir']))
     displayName: 'Build ILM Images'
     pool:
       name: Azure Pipelines
@@ -20,13 +25,10 @@ stages:
       - job: BuildILMImages
         displayName: 'Build ILM Docker Images'
         condition: |
-          and(
-            or(
-              eq(variables['Build.Reason'], 'Manual'),
-              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-              eq(variables['Build.SourceBranch'], 'refs/tags/*')
-            ),
-            contains(variables['Build.Changes'], 'ilm/')
+          or(
+            eq(variables['Build.Reason'], 'Manual'),
+            eq(variables['Build.SourceBranch'], 'refs/heads/azure-pipelines'),
+            eq(variables['Build.SourceBranch'], 'refs/tags/*')
           )
         steps:
           - task: Docker@2
@@ -69,7 +71,7 @@ stages:
               tags: 'latest'
 
   - stage: BuildTransformation
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), in('pathology', variables['Build.SourceDir']))
     displayName: 'Build Transformation Images'
     pool:
       name: Azure Pipelines
@@ -77,13 +79,10 @@ stages:
       - job: BuildTransformationImages
         displayName: 'Build Transformation Docker Images'
         condition: |
-          and(
-            or(
-              eq(variables['Build.Reason'], 'Manual'),
-              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-              eq(variables['Build.SourceBranch'], 'refs/tags/*')
-            ),
-            contains(variables['Build.Changes'], 'pathology/')
+          or(
+            eq(variables['Build.Reason'], 'Manual'),
+            eq(variables['Build.SourceBranch'], 'refs/heads/azure-pipelines'),
+            eq(variables['Build.SourceBranch'], 'refs/tags/*')
           )
         steps:
           - task: Docker@2
