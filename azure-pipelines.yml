@@ -1,120 +1,184 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 variables:
 - group: ml-artreg-digital-pathology-p
 
-trigger: 
-- main
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - ilm/*
+      - pathology/*
 
 stages:
- - stage: GitHub
-   pool:
-    name: Azure Pipelines
-   jobs:
-    - job: FetchGitHub
-      steps:
-        - task: Docker@2
-          name: Debian
-          displayName: 'Build debian base image'
-          inputs:
-            repository: '$(GCR.Name)/base_image_debian'
-            command: build
-            Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
-            tags: 'latest'         
+  - stage: BuildILM
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    displayName: 'Build ILM Images'
+    pool:
+      name: Azure Pipelines
+    jobs:
+      - job: BuildILMImages
+        displayName: 'Build ILM Docker Images'
+        condition: |
+          and(
+            or(
+              eq(variables['Build.Reason'], 'Manual'),
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['Build.SourceBranch'], 'refs/tags/*')
+            ),
+            contains(variables['Build.Changes'], 'ilm/')
+          )
+        steps:
+          - task: Docker@2
+            displayName: 'Build ILM Launcher Image'
+            inputs:
+              repository: '$(GCR.Name)/ilm_launcher'
+              command: build
+              Dockerfile: ilm/deployment/dataflow_launcher.Dockerfile
+              tags: 'latest'
 
-        - task: Docker@2
-          displayName: 'Build open cv base image'
-          enabled: true
-          inputs:
-            repository: '$(GCR.Name)/base_image_open_cv'
-            command: build
-            Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
-            tags: 'latest'
-            arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_debian:latest'
-        - task: Docker@2
-          displayName: 'Build transformation base image'
-          enabled: true
-          inputs:
-            repository: '$(GCR.Name)/base_image_transformation'
-            command: build
-            Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
-            tags: 'latest'
-            arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_open_cv:latest'
+          - task: Docker@2
+            displayName: 'Build ILM Worker Image'
+            inputs:
+              repository: '$(GCR.Name)/ilm_worker'
+              command: build
+              Dockerfile: ilm/deployment/dataflow_worker.Dockerfile
+              tags: 'latest'
 
-        - task: Docker@2
-          displayName: 'Build transformation image'
-          enabled: true
-          inputs:
-            repository: '$(GCR.Name)/test_transformation'
-            command: build
-            Dockerfile: pathology/transformation_pipeline/Dockerfile
-            tags: 'latest'
-            buildContext: ./pathology
-            arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
-        - task: Bash@3
-          displayName: Save Docker Image
-          inputs:
-            targetType: 'inline'
-            script: |
-             docker save $(GCR.Name)/test_transformation:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
-        - task: PublishPipelineArtifact@1
-          inputs:
-            targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
-            artifact: 'IMAGE_ARTIFACT'
-            #publishLocation: 'pipeline'                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Images'
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/ilm_launcher:latest,$(GCR.Name)/ilm_worker:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
 
- - stage: ADO
-   pool:
-    name: MCC Applications
-   jobs:
-    - job: BuildInADO
-      steps:
-        - checkout: none
+          - task: Docker@2
+            displayName: 'Publish ILM Launcher Image'
+            condition: succeeded()
+            inputs:
+              repository: '$(GCR.Name)/test_ilm_launcher'
+              command: push
+              tags: 'latest'
 
-        - task: DownloadPipelineArtifact@2
-          inputs:
-            buildType: 'current'
-            artifactName: 'IMAGE_ARTIFACT'
-            targetPath: '$(System.DefaultWorkingDirectory)'
-        - task: Bash@3
-          displayName: Load Docker Image
-          inputs:
-            targetType: 'inline'
-            script: |      
-              docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
-              docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_transformation:latest      
+          - task: Docker@2
+            displayName: 'Publish ILM Worker Image'
+            condition: succeeded()
+            inputs:
+              repository: '$(GCR.Name)/test_ilm_worker'
+              command: push
+              tags: 'latest'
 
-        - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
-          name: VaultOutput
-          displayName: 'MCC Vault Integration'
-          inputs:
-            vaultActionType: 'gcpCreds'
-            gcpSecretType: 'token'
-            GcpCredRoleset: $(Vault.Roleset)
-            Namespace: $(Vault.Namespace)
-            RoleId: $(Vault.RoleId)
-            SecretId: $(Vault.SecretId)
-            HostUri: $(Vault.Address)
+  - stage: BuildTransformation
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    displayName: 'Build Transformation Images'
+    pool:
+      name: Azure Pipelines
+    jobs:
+      - job: BuildTransformationImages
+        displayName: 'Build Transformation Docker Images'
+        condition: |
+          and(
+            or(
+              eq(variables['Build.Reason'], 'Manual'),
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['Build.SourceBranch'], 'refs/tags/*')
+            ),
+            contains(variables['Build.Changes'], 'pathology/')
+          )
+        steps:
+          - task: Docker@2
+            displayName: 'Build Debian Base Image'
+            inputs:
+              repository: '$(GCR.Name)/base_image_debian'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
+              tags: 'latest'
 
-#        - bash: echo $(VaultOutput.VaultResult)
+          - task: Docker@2
+            displayName: 'Build OpenCV Base Image'
+            inputs:
+              repository: '$(GCR.Name)/base_image_open_cv'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
+              tags: 'latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_debian:latest'
 
-        - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
-          displayName: 'Authenticate to Container Registry'
-          env:
-            SA_TOKEN: $(VaultOutput.VaultResult)
+          - task: Docker@2
+            displayName: 'Build Transformation Base Image'
+            inputs:
+              repository: '$(GCR.Name)/base_image_transformation'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
+              tags: 'latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_open_cv:latest'
 
-        - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
-          displayName: 'Prisma Cloud Compute Scan'
-          inputs:
-            twistlockService: 'Prisma Compute'
-            artifact: '$(GCR.Name)/base_image_debian:latest'
-          continueOnError: true
-        - task: Docker@2
-          displayName: 'Publish Container Image'
-          inputs:
-            repository: '$(GCR.Name)/test_transformation'
-            command: push
-            tags: 'latest'       
+          - task: Docker@2
+            displayName: 'Build Transformation Image'
+            inputs:
+              repository: '$(GCR.Name)/test_transformation'
+              command: build
+              Dockerfile: pathology/transformation_pipeline/Dockerfile
+              tags: 'latest'
+              buildContext: ./pathology
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
+
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan Transformation Images'
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_transformation:latest,$(GCR.Name)/base_image_debian:latest,$(GCR.Name)/base_image_open_cv:latest,$(GCR.Name)/base_image_transformation:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
+
+          - task: Docker@2
+            displayName: 'Publish Transformation Image'
+            condition: succeeded()
+            inputs:
+              repository: '$(GCR.Name)/test_transformation'
+              command: push
+              tags: 'latest'
+
+  - stage: ADO
+    pool:
+      name: MCC Applications
+    jobs:
+      - job: BuildInADO
+        steps:
+          - checkout: none
+
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: 'IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Load Docker Image'
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
+                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_transformation:latest      
+
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+            name: VaultOutput
+            displayName: 'MCC Vault Integration'
+            inputs:
+              vaultActionType: 'gcpCreds'
+              gcpSecretType: 'token'
+              GcpCredRoleset: $(Vault.Roleset)
+              Namespace: $(Vault.Namespace)
+              RoleId: $(Vault.RoleId)
+              SecretId: $(Vault.SecretId)
+              HostUri: $(Vault.Address)
+
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+            displayName: 'Authenticate to Container Registry'
+            env:
+              SA_TOKEN: $(VaultOutput.VaultResult)
+
+          - task: Docker@2
+            displayName: 'Publish Container Image'
+            inputs:
+              repository: '$(GCR.Name)/test_transformation'
+              command: push
+              tags: 'latest'
