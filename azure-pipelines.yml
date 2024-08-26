@@ -62,10 +62,13 @@ stages:
                 echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]false"
               fi
               echo "##[endgroup]"
+            name: ChangedDirectories
             displayName: 'Detect Path Changes'
             continueOnError: false
 
   - stage: BuildILM
+    variables:
+      ilmchanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.ILMChanged']]
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
     jobs:
@@ -73,11 +76,7 @@ stages:
         displayName: 'Build ILM Docker Images'
         steps:
           - script: |
-              echo "ILMChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ILMChanged']]"
-            displayName: 'Print ILMChanged Variable'
-
-          - script: |
-              if [ "$[stageDependencies.PathCheck.CheckPathChanges.outputs['ILMChanged']]" == "true" ]; then
+              if [ "$(ilmchanged)" == "true" ]; then
                 echo "Building ILM images..."
               else
                 echo "No changes in ilm/ directory. Skipping ILM image build."
@@ -125,6 +124,8 @@ stages:
               tags: 'latest'
 
   - stage: BuildTransformation
+    variables: 
+      pathologychanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
     displayName: 'Build Transformation Images'
     dependsOn: PathCheck
     jobs:
@@ -132,11 +133,7 @@ stages:
         displayName: 'Build Transformation Docker Images'
         steps:
           - script: |
-              echo "PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['PathologyChanged']]"
-            displayName: 'Print PathologyChanged Variable'
-
-          - script: |
-              if [ "$[stageDependencies.PathCheck.CheckPathChanges.outputs['PathologyChanged']]" == "true" ]; then
+              if [ "$(pathologychanged)" == "true" ]; then
                 echo "Building Transformation images..."
               else
                 echo "No changes in pathology/ directory. Skipping Transformation image build."
