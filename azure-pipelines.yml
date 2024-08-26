@@ -72,7 +72,7 @@ stages:
     pool:
       name: Azure Pipelines
     variables:
-      ILMChanged: $[stageDependencies.PathCheck.ChangedDirectories.outputs['CheckPathChanges.ILMChanged']]
+      ILMChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.ILMChanged']]
     jobs:
       - job: BuildILMImages
         displayName: 'Build ILM Docker Images'
@@ -138,7 +138,7 @@ stages:
     pool:
       name: Azure Pipelines
     variables:
-      PathologyChanged: $[stageDependencies.PathCheck.ChangedDirectories.outputs['CheckPathChanges.PathologyChanged']]
+      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
     condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
     jobs:
       - job: BuildTransformationImages
