@@ -97,6 +97,7 @@ stages:
               repository: '$(GCR.Name)/ilm_launcher'
               command: build
               Dockerfile: ilm/deployment/dataflow_launcher.Dockerfile
+              buildContext: $(Build.Repository.LocalPath)
               tags: 'latest'
 
           - task: Docker@2
@@ -106,6 +107,7 @@ stages:
               repository: '$(GCR.Name)/ilm_worker'
               command: build
               Dockerfile: ilm/deployment/dataflow_worker.Dockerfile
+              buildContext: $(Build.Repository.LocalPath)
               tags: 'latest'
 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
