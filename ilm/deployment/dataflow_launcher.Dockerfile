@@ -29,13 +29,7 @@ RUN apt-get update && \
     mkdir -p ${WORKDIR} "${WORKDIR}/ilm"
 
 WORKDIR ${WORKDIR}
-
-# Add debugging step
-RUN echo "Listing files in current context:" && ls -R .
-
 COPY ilm/deployment/requirements.txt /requirements.txt
-
-COPY requirements.txt /requirements.txt
 
 RUN python3 -m pip install -r /requirements.txt --require-hashes && \
     rm /requirements.txt
