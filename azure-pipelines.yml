@@ -156,9 +156,10 @@ stages:
               SA_TOKEN: $(VaultOutput.VaultResult)
               
           - task: DownloadPipelineArtifact@2
+            displayName: 'Download ILM Launcher Image'
             inputs:
               buildType: 'current'
-              artifactName: 'IMAGE_ARTIFACT'
+              artifactName: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
               targetPath: '$(System.DefaultWorkingDirectory)'
 
           - task: Bash@3
@@ -168,6 +169,13 @@ stages:
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/test_ilm_launcher.tar
                 docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_launcher:latest
+
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download ILM Launcher Image'
+            inputs:
+              buildType: 'current'
+              artifactName: 'ILM_WORKER_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
 
           - task: Bash@3
             displayName: 'Load ILM Worker Image'
