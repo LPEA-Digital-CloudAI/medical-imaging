@@ -100,7 +100,7 @@ stages:
             displayName: Publish ILM Launcher Docker to pipeline
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_launcher.tar'
-              artifact: 'IMAGE_ARTIFACT'
+              artifact: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
               #publishLocation: 'pipeline'
 
           - task: Docker@2
@@ -124,7 +124,7 @@ stages:
             displayName: Publish ILM Worker Docker Image
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_worker.tar'
-              artifact: 'IMAGE_ARTIFACT'
+              artifact: 'ILM_WORKER_IMAGE_ARTIFACT'
               #publishLocation: 'pipeline'        
 
   - stage: PublishILMArtifact
