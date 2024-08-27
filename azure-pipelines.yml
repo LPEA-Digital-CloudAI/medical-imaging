@@ -87,7 +87,21 @@ stages:
               command: build
               Dockerfile: ilm/deployment/dataflow_launcher.Dockerfile
               buildContext: $(Build.Repository.LocalPath)
-              tags: 'latest'
+              tags: 'latest'           
+
+          - task: Bash@3
+            displayName: Save ILM Launcher Docker Image
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_ilm_launcher:latest -o $(System.DefaultWorkingDirectory)/test_ilm_launcher.tar
+               
+          - task: PublishPipelineArtifact@1
+            displayName: Publish ILM Launcher Docker to pipeline
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_launcher.tar'
+              artifact: 'IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'
 
           - task: Docker@2
             displayName: 'Build ILM Worker Image'
@@ -97,15 +111,21 @@ stages:
               command: build
               Dockerfile: ilm/deployment/dataflow_worker.Dockerfile
               buildContext: $(Build.Repository.LocalPath)
-              tags: 'latest'           
+              tags: 'latest'
 
-          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
-            displayName: 'Prisma Scan ILM Images'
-            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+          - task: Bash@3
+            displayName: Save ILM Worker Docker Image
             inputs:
-              twistlockService: 'Prisma Compute'
-              artifact: '$(GCR.Name)/test_ilm_launcher:latest,$(GCR.Name)/test_ilm_worker:latest'
-            continueOnError: false  # Fail the job if Prisma scan fails
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_ilm_worker:latest -o $(System.DefaultWorkingDirectory)/test_ilm_worker.tar
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish ILM Worker Docker Image
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_worker.tar'
+              artifact: 'IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'        
 
   - stage: PublishILMArtifact
     displayName: 'Publish ILM Artifacts to Registry'
@@ -146,8 +166,24 @@ stages:
             inputs:
               targetType: 'inline'
               script: |      
-                docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
-                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_launcher:latest      
+                docker load --input $(System.DefaultWorkingDirectory)/test_ilm_launcher.tar
+                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_launcher:latest
+
+          - task: Bash@3
+            displayName: 'Load ILM Worker Image'
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/test_ilm_worker.tar
+                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_worker:latest                
+
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Images'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_ilm_launcher:latest,$(GCR.Name)/test_ilm_worker:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
 
           - task: Docker@2
             displayName: 'Publish ILM Launcher Image'
@@ -155,15 +191,7 @@ stages:
             inputs:
               repository: '$(GCR.Name)/test_ilm_launcher'
               command: push
-              tags: 'latest'
-
-          - task: Bash@3
-            displayName: 'Load ILM Worker Image'
-            inputs:
-              targetType: 'inline'
-              script: |      
-                docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
-                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_worker:latest      
+              tags: 'latest' 
                 
           - task: Docker@2
             displayName: 'Publish ILM Worker Image'
@@ -238,14 +266,6 @@ stages:
               buildContext: ./pathology
               arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
 
-          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
-            displayName: 'Prisma Scan Transformation Images'
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
-            inputs:
-              twistlockService: 'Prisma Compute'
-              artifact: '$(GCR.Name)/test_transformation:latest,$(GCR.Name)/base_image_debian:latest,$(GCR.Name)/base_image_open_cv:latest,$(GCR.Name)/base_image_transformation:latest'
-            continueOnError: false  # Fail the job if Prisma scan fails
-
   - stage: PublishTransformationArtifact
     displayName: 'Publish Transformation Artifact to Registry'
     dependsOn: BuildTransformation
@@ -286,7 +306,15 @@ stages:
           - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
             displayName: 'Authenticate to Container Registry'
             env:
-              SA_TOKEN: $(VaultOutput.VaultResult)
+              SA_TOKEN: $(VaultOutput.VaultResult)              
+
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan Transformation Images'
+            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_transformation:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
 
           - task: Docker@2
             displayName: 'Publish Container Image'
