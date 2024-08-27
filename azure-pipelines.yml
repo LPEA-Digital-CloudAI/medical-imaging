@@ -5,17 +5,6 @@ trigger:
   branches:
     include:
       - azure-pipelines
-      - main
-  paths:
-    include:
-      - ilm/*
-      - pathology/*
-
-pr:
-  branches:
-    include:
-      - azure-pipelines
-      - main
   paths:
     include:
       - ilm/*
@@ -119,7 +108,7 @@ stages:
             continueOnError: false  # Fail the job if Prisma scan fails
 
   - stage: PublishILMArtifact
-    displayName: 'Run ADO Tasks'
+    displayName: 'Publish ILM Artifacts to Registry'
     dependsOn: BuildILM
     condition: and(succeeded(), eq(dependencies.BuildILM.result, 'succeeded'))
     pool:
@@ -258,7 +247,7 @@ stages:
             continueOnError: false  # Fail the job if Prisma scan fails
 
   - stage: PublishTransformationArtifact
-    displayName: 'Run ADO Tasks'
+    displayName: 'Publish Transformation Artifact to Registry'
     dependsOn: BuildTransformation
     condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))
     pool:
