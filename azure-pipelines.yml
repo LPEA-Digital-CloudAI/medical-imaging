@@ -110,14 +110,6 @@ stages:
               buildContext: $(Build.Repository.LocalPath)
               tags: 'latest'
 
-          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
-            displayName: 'Prisma Scan ILM Images'
-            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
-            inputs:
-              twistlockService: 'Prisma Compute'
-              artifact: '$(GCR.Name)/ilm_launcher:latest,$(GCR.Name)/ilm_worker:latest'
-            continueOnError: false  # Fail the job if Prisma scan fails
-
           - task: Docker@2
             displayName: 'Publish ILM Launcher Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
@@ -132,7 +124,15 @@ stages:
             inputs:
               repository: '$(GCR.Name)/test_ilm_worker'
               command: push
-              tags: 'latest'
+              tags: 'latest'              
+
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Images'
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_ilm_launcher:latest,$(GCR.Name)/test_ilm_worker:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
 
   - stage: BuildTransformation
     displayName: 'Build Transformation Images'
