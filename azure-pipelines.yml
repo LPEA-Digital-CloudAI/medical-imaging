@@ -137,23 +137,6 @@ stages:
       - job: BuildInADO
         steps:
           - checkout: none
-
-          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
-            name: VaultOutput
-            displayName: 'MCC Vault Integration'
-            inputs:
-              vaultActionType: 'gcpCreds'
-              gcpSecretType: 'token'
-              GcpCredRoleset: $(Vault.Roleset)
-              Namespace: $(Vault.Namespace)
-              RoleId: $(Vault.RoleId)
-              SecretId: $(Vault.SecretId)
-              HostUri: $(Vault.Address)
-
-          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
-            displayName: 'Authenticate to Container Registry'
-            env:
-              SA_TOKEN: $(VaultOutput.VaultResult)
               
           - task: DownloadPipelineArtifact@2
             displayName: 'Download ILM Launcher Image'
@@ -183,7 +166,24 @@ stages:
               targetType: 'inline'
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/test_ilm_worker.tar
-                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_worker:latest                
+                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_worker:latest
+                
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+            name: VaultOutput
+            displayName: 'MCC Vault Integration'
+            inputs:
+              vaultActionType: 'gcpCreds'
+              gcpSecretType: 'token'
+              GcpCredRoleset: $(Vault.Roleset)
+              Namespace: $(Vault.Namespace)
+              RoleId: $(Vault.RoleId)
+              SecretId: $(Vault.SecretId)
+              HostUri: $(Vault.Address)
+
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+            displayName: 'Authenticate to Container Registry'
+            env:
+              SA_TOKEN: $(VaultOutput.VaultResult)
 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan ILM Images'
