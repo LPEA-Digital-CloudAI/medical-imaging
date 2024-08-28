@@ -303,6 +303,8 @@ stages:
     condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))
     pool:
       name: MCC Applications
+    variables:
+      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
     jobs:
       - job: BuildInADO
         steps:
