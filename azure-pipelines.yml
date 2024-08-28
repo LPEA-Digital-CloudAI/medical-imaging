@@ -91,6 +91,7 @@ stages:
 
           - task: Bash@3
             displayName: Save ILM Launcher Docker Image
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               targetType: 'inline'
               script: |
@@ -98,6 +99,7 @@ stages:
                
           - task: PublishPipelineArtifact@1
             displayName: Publish ILM Launcher Docker to pipeline
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_launcher.tar'
               artifact: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
@@ -115,6 +117,7 @@ stages:
 
           - task: Bash@3
             displayName: Save ILM Worker Docker Image
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               targetType: 'inline'
               script: |
@@ -122,6 +125,7 @@ stages:
 
           - task: PublishPipelineArtifact@1
             displayName: Publish ILM Worker Docker Image
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_worker.tar'
               artifact: 'ILM_WORKER_IMAGE_ARTIFACT'
@@ -216,7 +220,6 @@ stages:
       name: Azure Pipelines
     variables:
       PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
-    condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
     jobs:
       - job: BuildTransformationImages
         displayName: 'Build Transformation Docker Images'
@@ -235,8 +238,8 @@ stages:
             continueOnError: true
 
           - task: Docker@2
-            displayName: 'Build Debian Base Image'
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+            displayName: 'Build Debian Base Image'            
+            condition: eq(variables['ConditionalTransformationBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/base_image_debian'
               command: build
@@ -245,7 +248,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build OpenCV Base Image'
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+            condition: eq(variables['ConditionalTransformationBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/base_image_open_cv'
               command: build
@@ -255,7 +258,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build Transformation Base Image'
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+            condition: eq(variables['ConditionalTransformationBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/base_image_transformation'
               command: build
@@ -265,7 +268,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Build Transformation Image'
-            condition: eq(variables['ConditionalPathologyBuild.BuildPathology'], 'true')
+            condition: eq(variables['ConditionalTransformationBuild.BuildPathology'], 'true')
             inputs:
               repository: '$(GCR.Name)/test_transformation'
               command: build
