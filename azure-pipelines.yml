@@ -140,7 +140,7 @@ stages:
     variables:
       ILMChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.ILMChanged']]
     jobs:
-      - job: BuildInADO
+      - job: MCCPublishILMArtifact
         steps:
           - script: |
               if [ "$(ILMChanged)" == "true" ]; then
@@ -320,7 +320,7 @@ stages:
       #$[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
       PathologyChanged: true
     jobs:
-      - job: BuildInADO
+      - job: MCCPublishTransformationArtifact
         steps:
           - script: |
               echo "PathologyChanged: $(PathologyChanged)"
