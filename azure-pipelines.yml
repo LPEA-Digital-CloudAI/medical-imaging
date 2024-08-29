@@ -310,7 +310,7 @@ stages:
     jobs:
       - job: BuildInADO
         steps:
-          - script: ||
+          - script: |
               echo "PathologyChanged: $(PathologyChanged)"
               if [ "$(PathologyChanged)" == "true" ]; then
                 echo "Building Transformation images..."
