@@ -305,7 +305,8 @@ stages:
     pool:
       name: MCC Applications
     variables:
-      PathologyChanged: true #$[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
+      #$[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
+      PathologyChanged: true
     jobs:
       - job: BuildInADO
         steps:
