@@ -95,13 +95,13 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-               docker save $(GCR.Name)/test_ilm_launcher:latest -o $(System.DefaultWorkingDirectory)/test_ilm_launcher.tar
+               docker save $(GCR.Name)/test_ilm_launcher:latest -o $(System.DefaultWorkingDirectory)/image_ilm_launcher.tar
                
           - task: PublishPipelineArtifact@1
             displayName: Publish ILM Launcher Docker to pipeline
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
-              targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_launcher.tar'
+              targetPath: '$(System.DefaultWorkingDirectory)/image_ilm_launcher.tar'
               artifact: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
               #publishLocation: 'pipeline'
 
@@ -121,13 +121,13 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-               docker save $(GCR.Name)/test_ilm_worker:latest -o $(System.DefaultWorkingDirectory)/test_ilm_worker.tar
+               docker save $(GCR.Name)/test_ilm_worker:latest -o $(System.DefaultWorkingDirectory)/image_ilm_worker.tar
 
           - task: PublishPipelineArtifact@1
             displayName: Publish ILM Worker Docker Image
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             inputs:
-              targetPath: '$(System.DefaultWorkingDirectory)/test_ilm_worker.tar'
+              targetPath: '$(System.DefaultWorkingDirectory)/image_ilm_worker.tar'
               artifact: 'ILM_WORKER_IMAGE_ARTIFACT'
               #publishLocation: 'pipeline'        
 
@@ -170,7 +170,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |      
-                docker load --input $(System.DefaultWorkingDirectory)/test_ilm_launcher.tar
+                docker load --input $(System.DefaultWorkingDirectory)/image_ilm_launcher.tar
                 docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_launcher:latest
 
           - task: DownloadPipelineArtifact@2
@@ -187,7 +187,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |      
-                docker load --input $(System.DefaultWorkingDirectory)/test_ilm_worker.tar
+                docker load --input $(System.DefaultWorkingDirectory)/image_ilm_worker.tar
                 docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_worker:latest
                 
           - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
