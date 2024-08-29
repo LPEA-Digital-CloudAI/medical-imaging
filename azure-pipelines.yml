@@ -298,6 +298,18 @@ stages:
               buildContext: ./pathology
               arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
 
+          - task: Bash@3
+            displayName: Save Docker Image
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_transformation:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
+              artifact: 'IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'     
+
   - stage: PublishTransformationArtifact
     displayName: 'Publish Transformation Artifact to Registry'
     dependsOn: BuildTransformation
