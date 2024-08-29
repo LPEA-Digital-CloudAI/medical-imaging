@@ -300,11 +300,13 @@ stages:
 
           - task: Bash@3
             displayName: Save Docker Image
+            condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
             inputs:
               targetType: 'inline'
               script: |
                docker save $(GCR.Name)/test_transformation:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
           - task: PublishPipelineArtifact@1
+            condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
               artifact: 'IMAGE_ARTIFACT'
