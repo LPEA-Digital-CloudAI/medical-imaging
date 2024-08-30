@@ -378,7 +378,7 @@ stages:
             displayName: 'Check Conditional Transformation Image Build'
             continueOnError: true
 
-          - script: |
+          - powershell: |
               Get-ChildItem Env: | ForEach-Object { Write-Host "$($_.Name) = $($_.Value)" }
             displayName: 'Print all environment variables (PowerShell)'
 
