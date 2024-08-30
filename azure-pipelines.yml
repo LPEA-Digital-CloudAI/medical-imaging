@@ -160,8 +160,7 @@ stages:
             name: ConditionalILMBuild
             displayName: 'Conditional ILM Image Build'
             continueOnError: true
-          - checkout: none
-              
+            
           - task: DownloadPipelineArtifact@2
             displayName: 'Download ILM Launcher Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true
@@ -365,8 +364,6 @@ stages:
             displayName: 'Check Conditional Transformation Image Build'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
             continueOnError: true
-            
-          - checkout: none
 
           - task: DownloadPipelineArtifact@2
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
