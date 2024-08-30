@@ -342,7 +342,8 @@ stages:
     pool:
       name: MCC Applications
     variables:
-      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
+      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]      
+      PathologyChangedStage: $[dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged']]
     jobs:
       - job: MCCPublishTransformationArtifact
         steps:
@@ -358,12 +359,21 @@ stages:
                 echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildTransformation;isOutput=false]false"
                 exit 0
               fi
+              if [ "$(PathologyChangedStage)" == "true" ]; then
+                echo "Building Transformation images..."
+                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildTransformationS;isOutput=false]true"
+              else
+                echo "No changes in pathology/ directory. Skipping Transformation image build."
+                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildTransformationS;isOutput=false]false"
+                exit 0
+              fi
             name: ConditionalPathologyBuild
             displayName: 'Conditional Transformation Image Build'
             continueOnError: true
             
           - script: |
-              echo "PathologyChanged: $(ConditionalPathologyBuild.BuildTransformation)"
+              echo "PathologyChanged Stage: $(ConditionalPathologyBuild.BuildTransformation)"              
+              echo "PathologyChanged Dependency: $(ConditionalPathologyBuild.BuildTransformationS)"
             name: DebugScript
             displayName: 'Check Conditional Transformation Image Build'
             continueOnError: true
