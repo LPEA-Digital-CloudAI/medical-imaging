@@ -366,7 +366,6 @@ stages:
               echo "PathologyChanged: $(ConditionalPathologyBuild.BuildTransformation)"
             name: DebugScript
             displayName: 'Check Conditional Transformation Image Build'
-            condition: eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true')
             continueOnError: true
 
           - task: DownloadPipelineArtifact@2
