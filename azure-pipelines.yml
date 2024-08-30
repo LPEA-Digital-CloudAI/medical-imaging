@@ -255,7 +255,7 @@ stages:
     pool:
       name: Azure Pipelines
     variables:
-      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]variables:
+      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
       stageDependenciesSerialized: $[convertToJson(stageDependencies)]
     jobs:
       - job: BuildTransformationImages
