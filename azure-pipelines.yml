@@ -147,7 +147,9 @@ stages:
       ILMChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.ILMChanged']]
     jobs:
       - job: MCCPublishILMArtifact
-        steps:
+        steps:            
+          - checkout: none
+          
           - script: |
               if [ "$(ILMChanged)" == "true" ]; then
                 echo "Building ILM images..."
@@ -344,6 +346,8 @@ stages:
     jobs:
       - job: MCCPublishTransformationArtifact
         steps:
+          - checkout: none
+          
           - script: |
               echo "PathologyChanged: $(PathologyChanged)"
               if [ "$(PathologyChanged)" == "true" ]; then
@@ -362,7 +366,7 @@ stages:
               echo "PathologyChanged: $(ConditionalPathologyBuild.BuildTransformation)"
             name: DebugScript
             displayName: 'Check Conditional Transformation Image Build'
-            condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            condition: eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true')
             continueOnError: true
 
           - task: DownloadPipelineArtifact@2
