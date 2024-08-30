@@ -275,25 +275,24 @@ stages:
             continueOnError: true
          
           - powershell: |
-              $stageNames = @('PathCheck') # Update with your actual stage names
-              if (-not $stageDependencies) {
-                  Write-Host "No stage dependencies found."
-              } else {
-                  foreach ($stage in $stageNames) {
-                      Write-Host "Checking dependencies for $stage"
-                      if ($stageDependencies.ContainsKey($stage)) {
-                          foreach ($job in $stageDependencies[$stage].Keys) {
-                              Write-Host "  Checking job: $job"
-                              foreach ($output in $stageDependencies[$stage][$job].outputs.Keys) {
-                                  $outputValue = $stageDependencies[$stage][$job].outputs[$output]
-                                  Write-Host "    ${output}: ${outputValue}"  # Using ${} for variables
-                              }
+              # extract only initial variables as hashtable
+              function ExtractHashtableByVariableNames {
+                  param ( [Parameter(Position=0)] [string] $stageDependenciesJson )
+
+                  $result = @{}
+                  $stageDependencies = $stageDependenciesJson | ConvertFrom-Json
+                  foreach($stage in $stageDependencies.psobject.Properties) {
+                      foreach($job in $stage.Value.psobject.Properties) {
+                          foreach($step in $job.Value.outputs.psobject.Properties) {
+                              $varName = $step.Name.Substring($step.Name.IndexOf('.') + 1)
+                              $result[$varName] = $step.Value
                           }
-                      } else {
-                          Write-Host "  No dependencies found for $stage"
                       }
                   }
+                  return $result
               }
+              $myHashtable = ExtractHashtableByVariableNames '$(stageDependenciesSerialized)'
+              Write-Host $myHashtable
             displayName: 'Print stage dependencies'
 
           - task: Docker@2
