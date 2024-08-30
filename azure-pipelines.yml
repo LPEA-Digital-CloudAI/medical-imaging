@@ -359,7 +359,9 @@ stages:
 
   - stage: PublishTransformationArtifact
     displayName: 'Publish Transformation Artifact to Registry'
-    dependsOn: BuildTransformation
+    dependsOn:
+      - BuildTransformation
+      - PathCheck
     condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))    
     pool:
       name: MCC Applications
