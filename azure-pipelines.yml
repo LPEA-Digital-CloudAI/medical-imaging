@@ -82,6 +82,7 @@ stages:
           - task: Docker@2
             displayName: 'Build ILM Launcher Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_ilm_launcher'
               command: build
@@ -92,6 +93,7 @@ stages:
           - task: Bash@3
             displayName: Save ILM Launcher Docker Image
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |
@@ -100,6 +102,7 @@ stages:
           - task: PublishPipelineArtifact@1
             displayName: Publish ILM Launcher Docker to pipeline
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/image_ilm_launcher.tar'
               artifact: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
@@ -108,6 +111,7 @@ stages:
           - task: Docker@2
             displayName: 'Build ILM Worker Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_ilm_worker'
               command: build
@@ -118,6 +122,7 @@ stages:
           - task: Bash@3
             displayName: Save ILM Worker Docker Image
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |
@@ -126,6 +131,7 @@ stages:
           - task: PublishPipelineArtifact@1
             displayName: Publish ILM Worker Docker Image
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/image_ilm_worker.tar'
               artifact: 'ILM_WORKER_IMAGE_ARTIFACT'
@@ -158,7 +164,8 @@ stages:
               
           - task: DownloadPipelineArtifact@2
             displayName: 'Download ILM Launcher Image'
-            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true
+            enabled: false
             inputs:
               buildType: 'current'
               artifactName: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
@@ -167,6 +174,7 @@ stages:
           - task: Bash@3
             displayName: 'Load ILM Launcher Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |      
@@ -176,6 +184,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download ILM Launcher Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               buildType: 'current'
               artifactName: 'ILM_WORKER_IMAGE_ARTIFACT'
@@ -184,6 +193,7 @@ stages:
           - task: Bash@3
             displayName: 'Load ILM Worker Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |      
@@ -194,6 +204,7 @@ stages:
             name: VaultOutput
             displayName: 'MCC Vault Integration'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               vaultActionType: 'gcpCreds'
               gcpSecretType: 'token'
@@ -206,12 +217,14 @@ stages:
           - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
             displayName: 'Authenticate to Container Registry'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             env:
               SA_TOKEN: $(VaultOutput.VaultResult)
 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan ILM Images'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/test_ilm_launcher:latest,$(GCR.Name)/test_ilm_worker:latest'
@@ -220,6 +233,7 @@ stages:
           - task: Docker@2
             displayName: 'Publish ILM Launcher Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_ilm_launcher'
               command: push
@@ -228,6 +242,7 @@ stages:
           - task: Docker@2
             displayName: 'Publish ILM Worker Image'
             condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_ilm_worker'
               command: push
@@ -261,6 +276,7 @@ stages:
           - task: Docker@2
             displayName: 'Build Debian Base Image'            
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/base_image_debian'
               command: build
@@ -270,6 +286,7 @@ stages:
           - task: Docker@2
             displayName: 'Build OpenCV Base Image'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/base_image_open_cv'
               command: build
@@ -280,6 +297,7 @@ stages:
           - task: Docker@2
             displayName: 'Build Transformation Base Image'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/base_image_transformation'
               command: build
@@ -290,6 +308,7 @@ stages:
           - task: Docker@2
             displayName: 'Build Transformation Image'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_transformation'
               command: build
@@ -301,12 +320,15 @@ stages:
           - task: Bash@3
             displayName: Save Docker Image
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |
                docker save $(GCR.Name)/test_transformation:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
+               
           - task: PublishPipelineArtifact@1
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
               artifact: 'IMAGE_ARTIFACT'
@@ -319,8 +341,7 @@ stages:
     pool:
       name: MCC Applications
     variables:
-      #$[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
-      PathologyChanged: true
+      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
     jobs:
       - job: MCCPublishTransformationArtifact
         steps:
@@ -338,10 +359,18 @@ stages:
             displayName: 'Conditional Transformation Image Build'
             continueOnError: true
             
+          - script: |
+              echo "PathologyChanged: $(ConditionalPathologyBuild.BuildTransformation)"
+            name: DebugScript
+            displayName: 'Check Conditional Transformation Image Build'
+            condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            continueOnError: true
+            
           - checkout: none
 
           - task: DownloadPipelineArtifact@2
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               buildType: 'current'
               artifactName: 'IMAGE_ARTIFACT'
@@ -349,6 +378,7 @@ stages:
 
           - task: Bash@3
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             displayName: 'Load Docker Image'
             inputs:
               targetType: 'inline'
@@ -360,6 +390,7 @@ stages:
             name: VaultOutput
             displayName: 'MCC Vault Integration'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               vaultActionType: 'gcpCreds'
               gcpSecretType: 'token'
@@ -372,12 +403,14 @@ stages:
           - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
             displayName: 'Authenticate to Container Registry'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             env:
               SA_TOKEN: $(VaultOutput.VaultResult)              
 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan Transformation Images'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/test_transformation:latest'
@@ -386,6 +419,7 @@ stages:
           - task: Docker@2
             displayName: 'Publish Container Image'
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_transformation'
               command: push
