@@ -371,20 +371,24 @@ stages:
             displayName: 'Conditional Transformation Image Build'
             continueOnError: true
             
-          - script: |
-              echo "PathologyChanged Stage: $(ConditionalPathologyBuild.BuildTransformation)"              
-              echo "PathologyChanged Dependency: $(ConditionalPathologyBuild.BuildTransformationS)"
-            name: DebugScript
-            displayName: 'Check Conditional Transformation Image Build'
-            continueOnError: true
-
           - powershell: |
-              Get-ChildItem Env: | ForEach-Object { Write-Host "$($_.Name) = $($_.Value)" }
-            displayName: 'Print all environment variables (PowerShell)'
+              $stageNames = @('PathCheck', 'BuildTransformation')
+              foreach ($stage in $stageNames) {
+                  Write-Host "Checking dependencies for $stage"
+                  if ($stageDependencies.ContainsKey($stage)) {
+                      foreach ($job in $stageDependencies[$stage].Keys) {
+                          Write-Host "  Checking job: $job"
+                          foreach ($output in $stageDependencies[$stage][$job].outputs.Keys) {
+                              $outputValue = $stageDependencies[$stage][$job].outputs[$output]
+                              Write-Host "    $output: $outputValue"
+                          }
+                      }
+                  } else {
+                      Write-Host "  No dependencies found for $stage"
+                  }
+              }
+            displayName: 'Print stage dependencies'
 
-          - script: |
-              printenv | sort
-            displayName: 'Print all environment variables (Bash)'
 
           - task: DownloadPipelineArtifact@2
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
