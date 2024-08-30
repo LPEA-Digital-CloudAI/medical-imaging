@@ -273,6 +273,28 @@ stages:
             name: ConditionalPathologyBuild
             displayName: 'Conditional Transformation Image Build'
             continueOnError: true
+         
+          - powershell: |
+              $stageNames = @('PathCheck') # Update with your actual stage names
+              if (-not $stageDependencies) {
+                  Write-Host "No stage dependencies found."
+              } else {
+                  foreach ($stage in $stageNames) {
+                      Write-Host "Checking dependencies for $stage"
+                      if ($stageDependencies.ContainsKey($stage)) {
+                          foreach ($job in $stageDependencies[$stage].Keys) {
+                              Write-Host "  Checking job: $job"
+                              foreach ($output in $stageDependencies[$stage][$job].outputs.Keys) {
+                                  $outputValue = $stageDependencies[$stage][$job].outputs[$output]
+                                  Write-Host "    ${output}: ${outputValue}"  # Using ${} for variables
+                              }
+                          }
+                      } else {
+                          Write-Host "  No dependencies found for $stage"
+                      }
+                  }
+              }
+            displayName: 'Print stage dependencies'
 
           - task: Docker@2
             displayName: 'Build Debian Base Image'            
@@ -369,26 +391,8 @@ stages:
               fi
             name: ConditionalPathologyBuild
             displayName: 'Conditional Transformation Image Build'
-            continueOnError: true
+            continueOnError: true  
             
-          - powershell: |
-              $stageNames = @('PathCheck', 'BuildTransformation')
-                foreach ($stage in $stageNames) {
-                  Write-Host "Checking dependencies for $stage"
-                  if ($stageDependencies.ContainsKey($stage)) {
-                      foreach ($job in $stageDependencies[$stage].Keys) {
-                          Write-Host "  Checking job: $job"
-                          foreach ($output in $stageDependencies[$stage][$job].outputs.Keys) {
-                              $outputValue = $stageDependencies[$stage][$job].outputs[$output]
-                              Write-Host "    ${output}: ${outputValue}"  # Using ${} for variables
-                          }
-                      }
-                  } else {
-                      Write-Host "  No dependencies found for $stage"
-                  }
-              }
-            displayName: 'Print stage dependencies'
-
           - task: DownloadPipelineArtifact@2
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
             enabled: false
