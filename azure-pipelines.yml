@@ -374,20 +374,20 @@ stages:
           - powershell: |
               $stageNames = @('PathCheck', 'BuildTransformation')
               foreach ($stage in $stageNames) {
-              Write-Host "Checking dependencies for $stage"
-              if ($stageDependencies.ContainsKey($stage)) {
-                  foreach ($job in $stageDependencies[$stage].Keys) {
-                      Write-Host "  Checking job: $job"
-                      foreach ($output in $stageDependencies[$stage][$job].outputs.Keys) {
-                          $outputValue = $stageDependencies[$stage][$job].outputs[$output]
-                          Write-Host "    ${output}: ${outputValue}"  # Using ${} for variables
-                      }
-                  }
-              } else {
-                  Write-Host "  No dependencies found for $stage"
-              }
-          }
-        displayName: 'Print stage dependencies'
+                Write-Host "Checking dependencies for $stage"
+                if ($stageDependencies.ContainsKey($stage)) {
+                    foreach ($job in $stageDependencies[$stage].Keys) {
+                        Write-Host "  Checking job: $job"
+                        foreach ($output in $stageDependencies[$stage][$job].outputs.Keys) {
+                            $outputValue = $stageDependencies[$stage][$job].outputs[$output]
+                            Write-Host "    ${output}: ${outputValue}"  # Using ${} for variables
+                        }
+                    }
+                } else {
+                    Write-Host "  No dependencies found for $stage"
+                }
+            }
+          displayName: 'Print stage dependencies'
 
 
           - task: DownloadPipelineArtifact@2
