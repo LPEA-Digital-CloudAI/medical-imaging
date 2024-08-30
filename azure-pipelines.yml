@@ -139,7 +139,9 @@ stages:
 
   - stage: PublishILMArtifact
     displayName: 'Publish ILM Artifacts to Registry'
-    dependsOn: BuildILM
+    dependsOn:
+      - BuildILM
+      - PathCheck
     condition: and(succeeded(), eq(dependencies.BuildILM.result, 'succeeded'))
     pool:
       name: MCC Applications
@@ -366,14 +368,11 @@ stages:
     pool:
       name: MCC Applications
     variables:
-      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]      
-      PathologyChangedStage: $[dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged']]      
-      stageDependenciesSerialized: $[convertToJson(stageDependencies)]
+      PathologyChanged: $[stageDependencies.PathCheck.CheckPathChanges.outputs['ChangedDirectories.PathologyChanged']]
     jobs:
       - job: MCCPublishTransformationArtifact
         steps:
-          - checkout: none
-          
+          - checkout: none          
           - script: |
               echo "PathologyChanged: $(PathologyChanged)"
               if [ "$(PathologyChanged)" == "true" ]; then
@@ -384,38 +383,9 @@ stages:
                 echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildTransformation;isOutput=false]false"
                 exit 0
               fi
-              if [ "$(PathologyChangedStage)" == "true" ]; then
-                echo "Building Transformation images..."
-                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildTransformationS;isOutput=false]true"
-              else
-                echo "No changes in pathology/ directory. Skipping Transformation image build."
-                echo "##vso[task.setvariable variable=ConditionalPathologyBuild.BuildTransformationS;isOutput=false]false"
-                exit 0
-              fi
             name: ConditionalPathologyBuild
             displayName: 'Conditional Transformation Image Build'
             continueOnError: true
-
-          - powershell: |
-              # extract only initial variables as hashtable
-              function ExtractHashtableByVariableNames {
-                  param ( [Parameter(Position=0)] [string] $stageDependenciesJson )
-
-                  $result = @{}
-                  $stageDependencies = $stageDependenciesJson | ConvertFrom-Json
-                  foreach($stage in $stageDependencies.psobject.Properties) {
-                      foreach($job in $stage.Value.psobject.Properties) {
-                          foreach($step in $job.Value.outputs.psobject.Properties) {
-                              $varName = $step.Name.Substring($step.Name.IndexOf('.') + 1)
-                              $result[$varName] = $step.Value
-                          }
-                      }
-                  }
-                  return $result
-              }
-              $myHashtable = ExtractHashtableByVariableNames '$(stageDependenciesSerialized)'
-              Write-Host $myHashtable
-            displayName: 'Print stage dependencies'
             
           - task: DownloadPipelineArtifact@2
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
