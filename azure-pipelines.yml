@@ -252,7 +252,8 @@ stages:
 
   - stage: BuildTransformation
     displayName: 'Build Transformation Images'
-    dependsOn: PathCheck
+    dependsOn: PathCheck    
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPaths.setPathCheckVariables.PathologyChanged'], 'true'))
     pool:
       name: Azure Pipelines
     variables:
@@ -334,14 +335,14 @@ stages:
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
               artifact: 'IMAGE_ARTIFACT'
-              #publishLocation: 'pipeline'     
-
+              #publishLocation: 'pipeline'
+              
   - stage: PublishTransformationArtifact
     displayName: 'Publish Transformation Artifact to Registry'
     dependsOn:
       - BuildTransformation
       - PathCheck
-    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'))    
+    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPaths.setPathCheckVariables.PathologyChanged'], 'true'))
     pool:
       name: MCC Applications
     variables:
