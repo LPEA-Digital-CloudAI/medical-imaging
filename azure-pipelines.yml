@@ -253,7 +253,7 @@ stages:
   - stage: BuildTransformation
     displayName: 'Build Transformation Images'
     dependsOn: PathCheck    
-    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPaths.setPathCheckVariables.PathologyChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
     pool:
       name: Azure Pipelines
     variables:
@@ -342,7 +342,7 @@ stages:
     dependsOn:
       - BuildTransformation
       - PathCheck
-    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPaths.setPathCheckVariables.PathologyChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
     pool:
       name: MCC Applications
     variables:
