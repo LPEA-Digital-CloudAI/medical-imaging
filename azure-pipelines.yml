@@ -166,7 +166,7 @@ stages:
             
           - task: DownloadPipelineArtifact@2
             displayName: 'Download ILM Launcher Image'
-            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true
+            condition: eq(variables['ConditionalILMBuild.BuildILM'], 'true')
             enabled: true
             inputs:
               buildType: 'current'
