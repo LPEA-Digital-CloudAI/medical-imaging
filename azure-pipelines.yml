@@ -378,6 +378,14 @@ stages:
             displayName: 'Check Conditional Transformation Image Build'
             continueOnError: true
 
+          - script: |
+              Get-ChildItem Env: | ForEach-Object { Write-Host "$($_.Name) = $($_.Value)" }
+            displayName: 'Print all environment variables (PowerShell)'
+
+          - script: |
+              printenv | sort
+            displayName: 'Print all environment variables (Bash)'
+
           - task: DownloadPipelineArtifact@2
             condition: eq(variables['ConditionalPathologyBuild.BuildTransformation'], 'true')
             enabled: false
