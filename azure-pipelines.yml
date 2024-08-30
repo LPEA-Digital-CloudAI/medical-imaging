@@ -144,7 +144,7 @@ stages:
               targetType: 'inline'
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/image_ilm_launcher.tar
-                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_launcher:latest
+                docker tag $(GCR.Name)/test_ilm_launcher:latest
 
           - task: DownloadPipelineArtifact@2
             displayName: 'Download ILM Launcher Image'
@@ -161,7 +161,7 @@ stages:
               targetType: 'inline'
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/image_ilm_worker.tar
-                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_ilm_worker:latest
+                docker tag $(GCR.Name)/test_ilm_worker:latest
                 
           - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
             name: VaultOutput
