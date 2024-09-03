@@ -145,9 +145,17 @@ stages:
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/image_ilm_launcher.tar
                 docker tag $(GCR.Name)/test_ilm_launcher:latest $(GCR.Name)/test_ilm_launcher:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Launcher Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_ilm_launcher:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
 
           - task: DownloadPipelineArtifact@2
-            displayName: 'Download ILM Launcher Image'
+            displayName: 'Download ILM Worker Image'
             enabled: true
             inputs:
               buildType: 'current'
@@ -162,6 +170,14 @@ stages:
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/image_ilm_worker.tar
                 docker tag $(GCR.Name)/test_ilm_worker:latest $(GCR.Name)/test_ilm_worker:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Worker Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_ilm_worker:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
                 
           - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
             name: VaultOutput
@@ -181,14 +197,6 @@ stages:
             enabled: true
             env:
               SA_TOKEN: $(VaultOutput.VaultResult)
-
-          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
-            displayName: 'Prisma Scan ILM Images'
-            enabled: true
-            inputs:
-              twistlockService: 'Prisma Compute'
-              artifact: '$(GCR.Name)/test_ilm_worker:latest'
-            continueOnError: false  # Fail the job if Prisma scan fails
 
           - task: Docker@2
             displayName: 'Publish ILM Launcher Image'
