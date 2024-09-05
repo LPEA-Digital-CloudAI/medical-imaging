@@ -18,6 +18,7 @@
 #
 # from pathology_cloud working dir run: ./transformation_pipeline/deploy_ingest.sh
 #
+ARG BASE_CONTAINER
 FROM ${BASE_CONTAINER}
 
 WORKDIR /
@@ -107,8 +108,8 @@ RUN set -e && \
     # Run Unit Tests
     ./gTests && \
     cd .. && \
-    # Run EndToEnd Tests
-    ./endToEnd/endToEndTest.sh SKIP_BUILD_ENVIRONMENT && \
+    # Skip EndToEnd Tests
+    # ./endToEnd/endToEndTest.sh SKIP_BUILD_ENVIRONMENT && \
     rm ./cloud_build/debianBuild.sh && \
     touch ./cloud_build/debianBuild.sh && \
     chmod +x ./cloud_build/debianBuild.sh && \

@@ -1,0 +1,344 @@
+variables:
+- group: ml-artreg-digital-pathology-p
+
+trigger:
+  branches:
+    include:
+      - azure-pipelines
+  paths:
+    include:
+      - ilm/*
+      - pathology/*
+stages:
+  - stage: PathCheck
+    displayName: 'Check for Path Changes'
+    jobs:
+      - job: CheckPathChanges
+        displayName: 'Determine Changed Paths'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - script: |
+              echo "##[group]Checking for changes in ilm/ and pathology/ directories"
+              
+              # Fetch recent commits
+              git fetch --depth=2
+
+              # Get the last two commits
+              LAST_COMMIT=$(git rev-parse HEAD)
+              PREV_COMMIT=$(git rev-parse HEAD^)
+
+              # Check changes between the latest commit and its parent
+              git diff --name-only $PREV_COMMIT $LAST_COMMIT > changes.txt
+              echo "Changed files:"
+              cat changes.txt
+
+              # Check for changes in specific directories
+              if grep -qE '^ilm/' changes.txt; then
+                echo "Changes detected in ilm/ directory."
+                echo "##vso[task.setvariable variable=ILMChanged;isOutput=true]true"
+              else
+                echo "No changes in ilm/ directory."
+                echo "##vso[task.setvariable variable=ILMChanged;isOutput=true]false"
+              fi
+              if grep -qE '^pathology/' changes.txt; then
+                echo "Changes detected in pathology/ directory."
+                echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]true"
+              else
+                echo "No changes in pathology/ directory."
+                echo "##vso[task.setvariable variable=PathologyChanged;isOutput=true]false"
+              fi
+              echo "##[endgroup]"
+            name: ChangedDirectories
+            displayName: 'Detect Path Changes'
+            continueOnError: false
+
+  - stage: BuildILM
+    displayName: 'Build ILM Images'
+    dependsOn: PathCheck
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.ILMChanged'], 'true'))
+    pool:
+      name: Azure Pipelines
+    jobs:
+      - job: BuildILMImages
+        displayName: 'Build ILM Docker Images'
+        steps:
+          - task: Docker@2
+            displayName: 'Build ILM Launcher Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/test_ilm_launcher'
+              command: build
+              Dockerfile: ilm/deployment/dataflow_launcher.Dockerfile
+              buildContext: $(Build.Repository.LocalPath)
+              tags: 'latest'           
+
+          - task: Bash@3
+            displayName: Save ILM Launcher Docker Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_ilm_launcher:latest -o $(System.DefaultWorkingDirectory)/image_ilm_launcher.tar
+               
+          - task: PublishPipelineArtifact@1
+            displayName: Publish ILM Launcher Docker to pipeline
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/image_ilm_launcher.tar'
+              artifact: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'
+
+          - task: Docker@2
+            displayName: 'Build ILM Worker Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/test_ilm_worker'
+              command: build
+              Dockerfile: ilm/deployment/dataflow_worker.Dockerfile
+              buildContext: $(Build.Repository.LocalPath)
+              tags: 'latest'
+
+          - task: Bash@3
+            displayName: Save ILM Worker Docker Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_ilm_worker:latest -o $(System.DefaultWorkingDirectory)/image_ilm_worker.tar
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish ILM Worker Docker Image
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/image_ilm_worker.tar'
+              artifact: 'ILM_WORKER_IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'        
+
+  - stage: PublishILMArtifact
+    displayName: 'Publish ILM Artifacts to Registry'
+    dependsOn:
+      - BuildILM
+      - PathCheck
+    condition: and(succeeded(), eq(dependencies.BuildILM.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.ILMChanged'], 'true'))
+    pool:
+      name: MCC Applications
+    jobs:
+      - job: MCCPublishILMArtifact
+        steps:            
+          - checkout: none
+            
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download ILM Launcher Image'
+            enabled: true
+            inputs:
+              buildType: 'current'
+              artifactName: 'ILM_LAUNCHER_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Load ILM Launcher Image'
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/image_ilm_launcher.tar
+                docker tag $(GCR.Name)/test_ilm_launcher:latest $(GCR.Name)/test_ilm_launcher:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Launcher Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_ilm_launcher:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
+
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download ILM Worker Image'
+            enabled: true
+            inputs:
+              buildType: 'current'
+              artifactName: 'ILM_WORKER_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Load ILM Worker Image'
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/image_ilm_worker.tar
+                docker tag $(GCR.Name)/test_ilm_worker:latest $(GCR.Name)/test_ilm_worker:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan ILM Worker Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_ilm_worker:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
+                
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+            name: VaultOutput
+            displayName: 'MCC Vault Integration'
+            enabled: true
+            inputs:
+              vaultActionType: 'gcpCreds'
+              gcpSecretType: 'token'
+              GcpCredRoleset: $(Vault.Roleset)
+              Namespace: $(Vault.Namespace)
+              RoleId: $(Vault.RoleId)
+              SecretId: $(Vault.SecretId)
+              HostUri: $(Vault.Address)
+
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+            displayName: 'Authenticate to Container Registry'
+            enabled: true
+            env:
+              SA_TOKEN: $(VaultOutput.VaultResult)
+
+          - task: Docker@2
+            displayName: 'Publish ILM Launcher Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/test_ilm_launcher'
+              command: push
+              tags: 'latest' 
+                
+          - task: Docker@2
+            displayName: 'Publish ILM Worker Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/test_ilm_worker'
+              command: push
+              tags: 'latest'   
+
+  - stage: BuildTransformation
+    displayName: 'Build Transformation Images'
+    dependsOn: PathCheck    
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
+    pool:
+      name: Azure Pipelines
+    jobs:
+      - job: BuildTransformationImages
+        displayName: 'Build Transformation Docker Images'
+        steps:
+          - task: Docker@2
+            displayName: 'Build Debian Base Image'            
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_debian'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
+              tags: 'latest'
+
+          - task: Docker@2
+            displayName: 'Build OpenCV Base Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_open_cv'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
+              tags: 'latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_debian:latest'
+
+          - task: Docker@2
+            displayName: 'Build Transformation Base Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_transformation'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
+              tags: 'latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_open_cv:latest'
+
+          - task: Docker@2
+            displayName: 'Build Transformation Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/test_transformation'
+              command: build
+              Dockerfile: pathology/transformation_pipeline/Dockerfile
+              tags: 'latest'
+              buildContext: ./pathology
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
+
+          - task: Bash@3
+            displayName: Save Docker Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_transformation:latest -o $(System.DefaultWorkingDirectory)/image_file.tar
+               
+          - task: PublishPipelineArtifact@1
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/image_file.tar'
+              artifact: 'IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'
+              
+  - stage: PublishTransformationArtifact
+    displayName: 'Publish Transformation Artifact to Registry'
+    dependsOn:
+      - BuildTransformation
+      - PathCheck
+    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
+    pool:
+      name: MCC Applications
+    jobs:
+      - job: MCCPublishTransformationArtifact
+        steps:
+          - checkout: none
+          
+          - task: DownloadPipelineArtifact@2
+            enabled: true
+            inputs:
+              buildType: 'current'
+              artifactName: 'IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            enabled: true
+            displayName: 'Load Docker Image'
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/image_file.tar
+                docker tag $(GCR.Name)/test_transformation:latest $(GCR.Name)/test_transformation:latest      
+
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+            name: VaultOutput
+            displayName: 'MCC Vault Integration'
+            enabled: true
+            inputs:
+              vaultActionType: 'gcpCreds'
+              gcpSecretType: 'token'
+              GcpCredRoleset: $(Vault.Roleset)
+              Namespace: $(Vault.Namespace)
+              RoleId: $(Vault.RoleId)
+              SecretId: $(Vault.SecretId)
+              HostUri: $(Vault.Address)
+
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+            displayName: 'Authenticate to Container Registry'
+            enabled: true
+            env:
+              SA_TOKEN: $(VaultOutput.VaultResult)              
+
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan Transformation Images'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_transformation:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
+
+          - task: Docker@2
+            displayName: 'Publish Container Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/test_transformation'
+              command: push
+              tags: 'latest'
