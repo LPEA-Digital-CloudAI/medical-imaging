@@ -124,7 +124,7 @@ RUN set -e && \
     # Run Unit Tests
     ./gTests && \
     cd .. && \
-    # Run EndToEnd Tests
+    # Skip EndToEnd Tests
     # ./endToEnd/endToEndTest.sh SKIP_BUILD_ENVIRONMENT && \
     rm ./cloud_build/debianBuild.sh && \
     touch ./cloud_build/debianBuild.sh && \

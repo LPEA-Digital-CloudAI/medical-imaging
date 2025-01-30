@@ -31,6 +31,8 @@ RUN apt-get update && \
 WORKDIR ${WORKDIR}
 COPY ilm/deployment/requirements.txt /requirements.txt
 
+#RUN pip install --upgrade pip setuptools
+
 RUN python3 -m pip install -r /requirements.txt --require-hashes && \
     rm /requirements.txt
 
