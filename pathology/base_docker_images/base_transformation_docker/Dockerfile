@@ -41,8 +41,8 @@ RUN apt-get update && \
 
 WORKDIR /
 
-#Install Abseil TS 20240116.2
-ARG ABSEIL_VERSION="20240116.2"
+#Install Abseil TS 20240722.0
+ARG ABSEIL_VERSION="20240722.0"
 RUN wget -O abseil.zip "https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.zip" && \
     unzip abseil.zip && \
     rm abseil.zip && \
@@ -53,24 +53,24 @@ RUN wget -O abseil.zip "https://github.com/abseil/abseil-cpp/archive/refs/tags/$
     cmake  --build . --target install &&  \
     rm -rf "/abseil-cpp-${ABSEIL_VERSION}"
 
-#Install DCMTK 3.6.8
-ARG DCMTK_VERSION="3.6.8"
+#Install DCMTK 3.6.9
+ARG DCMTK_VERSION="3.6.9"
 RUN wget -O "dcmtk-${DCMTK_VERSION}.zip" "https://github.com/DCMTK/dcmtk/archive/refs/tags/DCMTK-${DCMTK_VERSION}.zip" > /dev/null && \
     unzip "dcmtk-${DCMTK_VERSION}.zip" > /dev/null  && \
     rm "dcmtk-${DCMTK_VERSION}.zip" && \
     mkdir -p "/dcmtk-DCMTK-${DCMTK_VERSION}/build" && \
     cd "/dcmtk-DCMTK-${DCMTK_VERSION}/build"  && \
-    cmake -DJPEG_LIBRARY=/opt/libjpeg-turbo/lib64/libjpeg.a -DJPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include -DDCMTK_FORCE_FPIC_ON_UNIX:BOOL=TRUE -DDCMTK_ENABLE_CXX11:BOOL=TRUE -DDCMTK_ENABLE_CHARSET_CONVERSION:BOOL=FALSE -DBUILD_SHARED_LIBS:BOOL=ON -DDCMTK_MODULES:STRING="oficonv;ofstd;oflog;dcmdata;dcmimgle;dcmimage;dcmjpeg" ..  && \
+    cmake -DJPEG_LIBRARY=/opt/libjpeg-turbo/lib64/libjpeg.a -DJPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include -DDCMTK_FORCE_FPIC_ON_UNIX:BOOL=TRUE -DDCMTK_ENABLE_CXX11:BOOL=TRUE -DDCMTK_ENABLE_CHARSET_CONVERSION:BOOL=FALSE -DBUILD_SHARED_LIBS:BOOL=ON -DDCMTK_MODULES:STRING="oficonv;ofstd;oflog;dcmdata;dcmimgle;dcmimage;dcmjpeg;dcmjpls;dcmapps" ..  && \
     make -j12 && \
     make DESTDIR=/ install && \
     rm -rf "/dcmtk-DCMTK-${DCMTK_VERSION}"
-ENV DCMDICTPATH=/usr/local/share/dcmtk-3.6.8/dicom.dic
+ENV DCMDICTPATH="/usr/local/share/dcmtk-${DCMTK_VERSION}/dicom.dic"
 ENV PATH=/usr/local/bin:$PATH
 
-#Install Boost 1.85.0
-ARG BOOST_VERSION="1.85.0"
-ARG BOOST_UNDERSCORE="1_85_0"
-RUN wget -O "boost_${BOOST_UNDERSCORE}.tar.gz" "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_${BOOST_UNDERSCORE}.tar.gz" > /dev/null && \
+#Install Boost 1.87.0
+ARG BOOST_VERSION="1.87.0"
+ARG BOOST_UNDERSCORE="1_87_0"
+RUN wget -O "boost_${BOOST_UNDERSCORE}.tar.gz" "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_UNDERSCORE}.tar.gz" > /dev/null && \
     tar xvzf "boost_${BOOST_UNDERSCORE}.tar.gz"  > /dev/null && \
     rm "boost_${BOOST_UNDERSCORE}.tar.gz" && \
     cd "boost_${BOOST_UNDERSCORE}" && \
@@ -102,8 +102,8 @@ RUN apt-get install -y libjpeg-dev ninja-build && \
 # Enable WSI2DCM and Python to find Openslide library
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib/aarch64-linux-gnu
 
-#Install JsonCPP 1.9.5
-ARG JSONCPP_VERSION="1.9.5"
+#Install JsonCPP 1.9.6
+ARG JSONCPP_VERSION="1.9.6"
 RUN wget -O "${JSONCPP_VERSION}.zip" "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/${JSONCPP_VERSION}.zip" > /dev/null && \
     unzip "${JSONCPP_VERSION}.zip"  > /dev/null && \
     rm "${JSONCPP_VERSION}.zip" && \
