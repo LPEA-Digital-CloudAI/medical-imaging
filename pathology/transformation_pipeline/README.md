@@ -3,7 +3,7 @@
 
 ## Overview
 
-The transformation pipeline is designed to make it easy to convert proprietary digital pathology image  formats to DICOM and ingest the DICOM images into a [Google Cloud DICOM store](https://cloud.google.com/healthcare-api/docs/how-tos/dicom) at scale. The tool enables you to:
+The transformation pipeline is designed to make it easier to convert proprietary digital pathology image  formats to DICOM and ingest the DICOM images into a [Google Cloud DICOM store](https://cloud.google.com/healthcare-api/docs/how-tos/dicom) at scale. The tool enables you to:
 
 
 * Perform pixel equivalent transformation for preferred formats (SVS, TIFF, and DICOM)
