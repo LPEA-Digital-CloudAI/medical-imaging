@@ -2,7 +2,7 @@
 
 <center><img src="images/frontend.png"></img></center>
 
-This repository contains open source tools created by Google Research to make it ***easy*** to bring digital pathology imaging to [Google Cloud](https://cloud.google.com/healthcare-api/docs/how-tos/dicom) and to serve pathology images from Google Cloud for a variety of applications including: medical imaging AI, interactive visualization, and more.
+This repository contains open source tools created by Google Research to make it ***easier*** to bring digital pathology imaging to [Google Cloud](https://cloud.google.com/healthcare-api/docs/how-tos/dicom) and to serve pathology images from Google Cloud for a variety of applications including: medical imaging AI, interactive visualization, and more.
 
 This repo contains:
 
