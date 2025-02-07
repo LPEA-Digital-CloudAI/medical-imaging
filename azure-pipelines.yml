@@ -83,7 +83,7 @@ stages:
             continueOnError: false
 
   - stage: BuildBaseContainers
-    displayName: 'Build Transformation Images'
+    displayName: 'Build Base Images'
     dependsOn: PathCheck    
     condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.BaseImagesChanged'], 'true'))
     pool:
