@@ -1,4 +1,4 @@
-# Zero Footprint DICOMWeb Pathology Viewer
+# Zero Footprints DICOMWeb Pathology Viewer
 
 <center><img src="../images/frontend.png"></img></center>
 
