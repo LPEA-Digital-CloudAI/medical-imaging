@@ -3,7 +3,7 @@
 This image is built using the Dockerfile in this directory to provide a unified
 base image with the most recent Debian-slim docker with security patches and an
 install of Python. Externally pre-built Python Docker images are not maintained
-against Debian docker security updates.
+against Debian docker security updates. x
 
 The docker image will need to be rebuilt when:
 
