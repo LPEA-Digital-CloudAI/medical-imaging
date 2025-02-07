@@ -82,6 +82,221 @@ stages:
             displayName: 'Detect Path Changes'
             continueOnError: false
 
+  - stage: BuildBaseContainers
+    displayName: 'Build Transformation Images'
+    dependsOn: PathCheck    
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.BaseImagesChanged'], 'true'))
+    pool:
+      name: Azure Pipelines
+    jobs:
+      - job: BuildDebianBase
+        displayName: 'Build Base Docker Images'
+        steps:
+          - task: Docker@2
+            displayName: 'Build Debian Base Image'            
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_debian'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
+              tags: 'latest'
+
+          - task: Bash@3
+            displayName: Save Debian Base Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_base_py_debian:latest -o $(System.DefaultWorkingDirectory)/base_py_debian.tar
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Debian Base Image
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/base_py_debian.tar'
+              artifact: 'BASE_DEBIAN_IMAGE_ARTIFACT'
+                
+          - task: Docker@2
+            displayName: 'Build OpenCV Base Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_open_cv'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
+              tags: 'latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_open_cv:latest'
+
+          - task: Bash@3
+            displayName: Save OpenCV Base Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_base_py_opencv:latest -o $(System.DefaultWorkingDirectory)/base_py_opencv.tar
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish OpenCV Base Docker Image
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/base_py_opencv.tar'
+              artifact: 'BASE_OPENCV_IMAGE_ARTIFACT'
+
+          - task: Docker@2
+            displayName: 'Build Transformation Base Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_transformation'
+              command: build
+              Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
+              tags: 'latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_transformation:latest'
+              
+          - task: Bash@3
+            displayName: Save Transformation Base Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_base_transformation:latest -o $(System.DefaultWorkingDirectory)/base_transformation.tar
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Transformation Base Docker Image
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/base_transformation.tar'
+              artifact: 'BASE_TRANSFORMATION_IMAGE_ARTIFACT'
+
+  - stage: PublishBaseContainers
+    displayName: 'Publish Base Artifacts to Registry'
+    dependsOn:
+      - BuildBaseContainers
+      - PathCheck
+    condition: and(succeeded(), eq(dependencies.BuildBaseContainers.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.BaseImagesChanged'], 'true'))
+    pool:
+      name: MCC Applications
+    jobs:
+      - job: MCCPublishILMArtifact
+        steps:            
+          - checkout: none
+            
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Base Debian Image'
+            enabled: true
+            inputs:
+              buildType: 'current'
+              artifactName: 'BASE_DEBIAN_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Load Base Debian Image'
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/base_py_debian.tar
+                docker tag $(GCR.Name)/test_base_py_debian:latest $(GCR.Name)/test_base_py_debian:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan Base Debian Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/test_base_py_debian:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
+
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download OpenCV Image'
+            enabled: true
+            inputs:
+              buildType: 'current'
+              artifactName: 'BASE_OPENCV_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Load OpenCV Image'
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/base_py_opencv.tar
+                docker tag $(GCR.Name)/test_base_py_opencv:latest $(GCR.Name)/base_py_opencv:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan OPEN CV Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/base_py_opencv:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails
+
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Base Transformation Image'
+            enabled: true
+            inputs:
+              buildType: 'current'
+              artifactName: 'BASE_TRANSFORMATION_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Load Base Transformation Image'
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |      
+                docker load --input $(System.DefaultWorkingDirectory)/base_transformation.tar
+                docker tag $(GCR.Name)/test_base_transformation:latest $(GCR.Name)/base_transformation:latest   
+                
+          - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
+            displayName: 'Prisma Scan Base Transformation Image'
+            enabled: true
+            inputs:
+              twistlockService: 'Prisma Compute'
+              artifact: '$(GCR.Name)/base_transformation:latest'
+            continueOnError: false  # Fail the job if Prisma scan fails            
+                
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+            name: VaultOutput
+            displayName: 'MCC Vault Integration'
+            enabled: true
+            inputs:
+              vaultActionType: 'gcpCreds'
+              gcpSecretType: 'token'
+              GcpCredRoleset: $(Vault.Roleset)
+              Namespace: $(Vault.Namespace)
+              RoleId: $(Vault.RoleId)
+              SecretId: $(Vault.SecretId)
+              HostUri: $(Vault.Address)
+
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+            displayName: 'Authenticate to Container Registry'
+            enabled: true
+            env:
+              SA_TOKEN: $(VaultOutput.VaultResult)
+
+          - task: Docker@2
+            displayName: 'Publish Base Debian Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_py_debian'
+              command: push
+              tags: 'latest' 
+                
+          - task: Docker@2
+            displayName: 'Publish OpenCV Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_py_opencv'
+              command: push
+              tags: 'latest'   
+
+          - task: Docker@2
+            displayName: 'Publish Transformation Base Image'
+            enabled: true
+            inputs:
+              repository: '$(GCR.Name)/base_image_transformation'
+              command: push
+              tags: 'latest' 
+              
   - stage: BuildILM
     displayName: 'Build ILM Images'
     dependsOn: PathCheck
@@ -253,30 +468,30 @@ stages:
         displayName: 'Build Transformation Docker Images'
         steps:
           - task: Docker@2
-            displayName: 'Build Debian Base Image'            
+            displayName: 'Get Debian Base Image'            
             enabled: true
             inputs:
               repository: '$(GCR.Name)/base_image_debian'
-              command: build
+              command: need to pull the existing image from artifact registry
               Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
               tags: 'latest'
 
           - task: Docker@2
-            displayName: 'Build OpenCV Base Image'
+            displayName: 'Get OpenCV Base Image'
             enabled: true
             inputs:
               repository: '$(GCR.Name)/base_image_open_cv'
-              command: build
+              command: command: need to pull the existing image from artifact registry
               Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
               tags: 'latest'
               arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_debian:latest'
 
           - task: Docker@2
-            displayName: 'Build Transformation Base Image'
+            displayName: 'Get Transformation Base Image'
             enabled: true
             inputs:
               repository: '$(GCR.Name)/base_image_transformation'
-              command: build
+              command: command: need to pull the existing image from artifact registry
               Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
               tags: 'latest'
               arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/base_image_open_cv:latest'
