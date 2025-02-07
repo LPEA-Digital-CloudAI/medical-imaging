@@ -49,6 +49,34 @@ stages:
                 echo "No changes in pathology/transformation_pipeline/ directory."
                 echo "##vso[task.setvariable variable=TransformationChanged;isOutput=true]false"
               fi
+              if grep -qE '^pathology/base_docker_images/' changes.txt; then
+                echo "Changes detected in pathology/base_docker_images/ directory."
+                echo "##vso[task.setvariable variable=BaseImagesChanged;isOutput=true]true"
+              else
+                echo "No changes in pathology/base_docker_images/ directory."
+                echo "##vso[task.setvariable variable=BaseImagesChanged;isOutput=true]false"
+              fi
+              if grep -qE '^pathology/dicom_proxy/' changes.txt; then
+                echo "Changes detected in pathology/dicom_proxy/ directory."
+                echo "##vso[task.setvariable variable=DicomProxyChanged;isOutput=true]true"
+              else
+                echo "No changes in pathology/dicom_proxy/ directory."
+                echo "##vso[task.setvariable variable=DicomProxyChanged;isOutput=true]false"
+              fi
+              if grep -qE '^pathology/orchestrator/' changes.txt; then
+                echo "Changes detected in pathology/orchestrator/ directory."
+                echo "##vso[task.setvariable variable=OrchestratorChanged;isOutput=true]true"
+              else
+                echo "No changes in pathology/orchestrator/ directory."
+                echo "##vso[task.setvariable variable=OrchestratorChanged;isOutput=true]false"
+              fi
+              if grep -qE '^pathology/viewer/' changes.txt; then
+                echo "Changes detected in pathology/viewer/ directory."
+                echo "##vso[task.setvariable variable=ViewerChanged;isOutput=true]true"
+              else
+                echo "No changes in pathology/viewer/ directory."
+                echo "##vso[task.setvariable variable=ViewerChanged;isOutput=true]false"
+              fi
               echo "##[endgroup]"
             name: ChangedDirectories
             displayName: 'Detect Path Changes'
