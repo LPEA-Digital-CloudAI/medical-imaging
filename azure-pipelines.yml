@@ -91,6 +91,7 @@ stages:
     jobs:
       - job: BuildDebianBase
         displayName: 'Build Base Docker Images'
+        steps:
           - task: Docker@2
             displayName: 'Build Debian Base Image'            
             inputs:
