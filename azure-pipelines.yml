@@ -116,7 +116,7 @@ stages:
                 
           - task: Docker@2
             displayName: 'Build OpenCV Base Image'
-            enabled: true
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_base_py_opencv'
               command: build
@@ -126,7 +126,7 @@ stages:
 
           - task: Bash@3
             displayName: Save OpenCV Base Image
-            enabled: true
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |
@@ -134,14 +134,14 @@ stages:
 
           - task: PublishPipelineArtifact@1
             displayName: Publish OpenCV Base Docker to pipeline
-            enabled: true
+            enabled: false
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/base_py_opencv.tar'
               artifact: 'OpenCV_BASE_IMAGE_ARTIFACT'
 
           - task: Docker@2
             displayName: 'Build Transformation Base Image'
-            enabled: true
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/test_base_transformation'
               command: build
@@ -151,7 +151,7 @@ stages:
               
           - task: Bash@3
             displayName: Save Transformation Base Image
-            enabled: true
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |
@@ -159,7 +159,7 @@ stages:
 
           - task: PublishPipelineArtifact@1
             displayName: Publish Transformation Base Docker to pipeline
-            enabled: true
+            enabled: false
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/base_transformation.tar'
               artifact: 'TRANSFORMATION_BASE_IMAGE_ARTIFACT'
@@ -205,7 +205,7 @@ stages:
 
           - task: DownloadPipelineArtifact@2
             displayName: 'Download OpenCV Base Image'
-            enabled: true
+            enabled: false
             inputs:
               buildType: 'current'
               artifactName: 'OpenCV_BASE_IMAGE_ARTIFACT'
@@ -213,7 +213,7 @@ stages:
 
           - task: Bash@3
             displayName: 'Load OpenCV Base Image'
-            enabled: true
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |      
@@ -222,7 +222,7 @@ stages:
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan OPEN CV Image'
-            enabled: true
+            enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/base_py_opencv:latest'
@@ -230,7 +230,7 @@ stages:
 
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Transformation Base Image'
-            enabled: true
+            enabled: false
             inputs:
               buildType: 'current'
               artifactName: 'TRANSFORMATION_BASE_IMAGE_ARTIFACT'
@@ -238,7 +238,7 @@ stages:
               
           - task: Bash@3
             displayName: 'Load Transformation Base Image'
-            enabled: true
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |      
@@ -247,7 +247,7 @@ stages:
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan Base Transformation Image'
-            enabled: true
+            enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/base_transformation:latest'
@@ -282,7 +282,7 @@ stages:
                 
           - task: Docker@2
             displayName: 'Publish OpenCV Image'
-            enabled: true
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/base_py_opencv'
               command: push
@@ -290,7 +290,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Publish Transformation Base Image'
-            enabled: true
+            enabled: false
             inputs:
               repository: '$(GCR.Name)/base_image_transformation'
               command: push
