@@ -89,91 +89,91 @@ stages:
     pool:
       name: Azure Pipelines
           jobs:
-      - job: BuildDebianBase
-        displayName: 'Build Base Docker Images'
-        steps:  
-          - script: |
-            if [ -f "$(Pipeline.Workspace)/DEBIAN_BASE_IMAGE_CHECK/base_py_debian.tar" ]; then
-              echo "Artifact already exists, skipping job."
-              echo "##vso[task.setvariable variable=SKIP_JOB;]true"
-            else
-              echo "Artifact does not exist, proceeding with job."
-              echo "##vso[task.setvariable variable=SKIP_JOB;]false"
-            fi
-          displayName: "Check if Artifact Exists"  
-          - task: Docker@2
-            displayName: 'Build Debian Base Image'            
-            enabled: true
-            inputs:
-              repository: '$(GCR.Name)/test_base_py_debian'
-              command: build
-              Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
-              tags: 'latest'
-
-          - task: Bash@3
-            displayName: Save Debian Base Image
-            enabled: true
-            inputs:
-              targetType: 'inline'
-              script: |
-               docker save $(GCR.Name)/test_base_py_debian:latest -o $(System.DefaultWorkingDirectory)/base_py_debian.tar
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish Debian Base Image to pipeline
-            enabled: true
-            inputs:
-              targetPath: '$(System.DefaultWorkingDirectory)/base_py_debian.tar'
-              artifact: 'DEBIAN_BASE_IMAGE_ARTIFACT'
-                
-          - task: Docker@2
-            displayName: 'Build OpenCV Base Image'
-            enabled: true
-            inputs:
-              repository: '$(GCR.Name)/test_base_py_opencv'
-              command: build
-              Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
-              tags: 'latest'
-              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_debian:latest'
-
-          - task: Bash@3
-            displayName: Save OpenCV Base Image
-            enabled: true
-            inputs:
-              targetType: 'inline'
-              script: |
-               docker save $(GCR.Name)/test_base_py_opencv:latest -o $(System.DefaultWorkingDirectory)/base_py_opencv.tar
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish OpenCV Base Docker to pipeline
-            enabled: true
-            inputs:
-              targetPath: '$(System.DefaultWorkingDirectory)/base_py_opencv.tar'
-              artifact: 'OpenCV_BASE_IMAGE_ARTIFACT'
-
-          - task: Docker@2
-            displayName: 'Build Transformation Base Image'
-            enabled: true
-            inputs:
-              repository: '$(GCR.Name)/test_base_transformation'
-              command: build
-              Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
-              tags: 'latest'
-              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_opencv:latest'
-              
-          - task: Bash@3
-            displayName: Save Transformation Base Image
-            enabled: true
-            inputs:
-              targetType: 'inline'
-              script: |
-               docker save $(GCR.Name)/test_base_transformation:latest -o $(System.DefaultWorkingDirectory)/base_transformation.tar
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish Transformation Base Docker to pipeline
-            enabled: true
-            inputs:
-              targetPath: '$(System.DefaultWorkingDirectory)/base_transformation.tar'
-              artifact: 'TRANSFORMATION_BASE_IMAGE_ARTIFACT'
+            - job: BuildDebianBase
+              displayName: 'Build Base Docker Images'
+              steps:  
+                - script: |
+                  if [ -f "$(Pipeline.Workspace)/DEBIAN_BASE_IMAGE_CHECK/base_py_debian.tar" ]; then
+                    echo "Artifact already exists, skipping job."
+                    echo "##vso[task.setvariable variable=SKIP_JOB;]true"
+                  else
+                    echo "Artifact does not exist, proceeding with job."
+                    echo "##vso[task.setvariable variable=SKIP_JOB;]false"
+                  fi
+                displayName: "Check if Artifact Exists"  
+                - task: Docker@2
+                  displayName: 'Build Debian Base Image'            
+                  enabled: true
+                  inputs:
+                    repository: '$(GCR.Name)/test_base_py_debian'
+                    command: build
+                    Dockerfile: pathology/base_docker_images/base_py_debian_docker/Dockerfile
+                    tags: 'latest'
+      
+                - task: Bash@3
+                  displayName: Save Debian Base Image
+                  enabled: true
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                     docker save $(GCR.Name)/test_base_py_debian:latest -o $(System.DefaultWorkingDirectory)/base_py_debian.tar
+      
+                - task: PublishPipelineArtifact@1
+                  displayName: Publish Debian Base Image to pipeline
+                  enabled: true
+                  inputs:
+                    targetPath: '$(System.DefaultWorkingDirectory)/base_py_debian.tar'
+                    artifact: 'DEBIAN_BASE_IMAGE_ARTIFACT'
+                      
+                - task: Docker@2
+                  displayName: 'Build OpenCV Base Image'
+                  enabled: true
+                  inputs:
+                    repository: '$(GCR.Name)/test_base_py_opencv'
+                    command: build
+                    Dockerfile: pathology/base_docker_images/base_py_opencv_docker/Dockerfile
+                    tags: 'latest'
+                    arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_debian:latest'
+      
+                - task: Bash@3
+                  displayName: Save OpenCV Base Image
+                  enabled: true
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                     docker save $(GCR.Name)/test_base_py_opencv:latest -o $(System.DefaultWorkingDirectory)/base_py_opencv.tar
+      
+                - task: PublishPipelineArtifact@1
+                  displayName: Publish OpenCV Base Docker to pipeline
+                  enabled: true
+                  inputs:
+                    targetPath: '$(System.DefaultWorkingDirectory)/base_py_opencv.tar'
+                    artifact: 'OpenCV_BASE_IMAGE_ARTIFACT'
+      
+                - task: Docker@2
+                  displayName: 'Build Transformation Base Image'
+                  enabled: true
+                  inputs:
+                    repository: '$(GCR.Name)/test_base_transformation'
+                    command: build
+                    Dockerfile: pathology/base_docker_images/base_transformation_docker/Dockerfile
+                    tags: 'latest'
+                    arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_opencv:latest'
+                    
+                - task: Bash@3
+                  displayName: Save Transformation Base Image
+                  enabled: true
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                     docker save $(GCR.Name)/test_base_transformation:latest -o $(System.DefaultWorkingDirectory)/base_transformation.tar
+      
+                - task: PublishPipelineArtifact@1
+                  displayName: Publish Transformation Base Docker to pipeline
+                  enabled: true
+                  inputs:
+                    targetPath: '$(System.DefaultWorkingDirectory)/base_transformation.tar'
+                    artifact: 'TRANSFORMATION_BASE_IMAGE_ARTIFACT'
 
               
   - stage: PublishBaseContainers
