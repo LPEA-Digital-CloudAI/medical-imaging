@@ -110,14 +110,14 @@ stages:
 
           - task: PublishPipelineArtifact@1
             displayName: Publish Debian Base Image to pipeline
-            enabled: true
+            enabled: false
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/base_py_debian.tar'
               artifact: 'DEBIAN_BASE_IMAGE_ARTIFACT'
                 
           - task: Docker@2
             displayName: 'Build OpenCV Base Image'
-            enabled: false
+            enabled: true
             inputs:
               repository: '$(GCR.Name)/test_base_py_opencv'
               command: build
@@ -127,7 +127,7 @@ stages:
 
           - task: Bash@3
             displayName: Save OpenCV Base Image
-            enabled: false
+            enabled: true
             inputs:
               targetType: 'inline'
               script: |
@@ -135,14 +135,14 @@ stages:
 
           - task: PublishPipelineArtifact@1
             displayName: Publish OpenCV Base Docker to pipeline
-            enabled: false
+            enabled: true
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/base_py_opencv.tar'
               artifact: 'OpenCV_BASE_IMAGE_ARTIFACT'
 
           - task: Docker@2
             displayName: 'Build Transformation Base Image'
-            enabled: false
+            enabled: true
             inputs:
               repository: '$(GCR.Name)/test_base_transformation'
               command: build
@@ -152,7 +152,7 @@ stages:
               
           - task: Bash@3
             displayName: Save Transformation Base Image
-            enabled: false
+            enabled: true
             inputs:
               targetType: 'inline'
               script: |
@@ -160,7 +160,7 @@ stages:
 
           - task: PublishPipelineArtifact@1
             displayName: Publish Transformation Base Docker to pipeline
-            enabled: false
+            enabled: true
             inputs:
               targetPath: '$(System.DefaultWorkingDirectory)/base_transformation.tar'
               artifact: 'TRANSFORMATION_BASE_IMAGE_ARTIFACT'
@@ -181,7 +181,7 @@ stages:
 
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Base Image'
-            enabled: true
+            enabled: false
             inputs:
               buildType: 'current'
               artifactName: 'DEBIAN_BASE_IMAGE_ARTIFACT'
@@ -189,7 +189,7 @@ stages:
               
           - task: Bash@3
             displayName: 'Load Base Debian Image'
-            enabled: true
+            enabled: false
             inputs:
               targetType: 'inline'
               script: |      
@@ -198,7 +198,7 @@ stages:
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan Base Debian Image'
-            enabled: true
+            enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/test_base_py_debian:latest'
@@ -206,7 +206,7 @@ stages:
 
           - task: DownloadPipelineArtifact@2
             displayName: 'Download OpenCV Base Image'
-            enabled: false
+            enabled: true
             inputs:
               buildType: 'current'
               artifactName: 'OpenCV_BASE_IMAGE_ARTIFACT'
@@ -214,7 +214,7 @@ stages:
 
           - task: Bash@3
             displayName: 'Load OpenCV Base Image'
-            enabled: false
+            enabled: true
             inputs:
               targetType: 'inline'
               script: |      
@@ -223,7 +223,7 @@ stages:
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan OPEN CV Image'
-            enabled: false
+            enabled: true
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/test_base_py_opencv:latest'
@@ -231,7 +231,7 @@ stages:
 
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Transformation Base Image'
-            enabled: false
+            enabled: true
             inputs:
               buildType: 'current'
               artifactName: 'TRANSFORMATION_BASE_IMAGE_ARTIFACT'
@@ -239,7 +239,7 @@ stages:
               
           - task: Bash@3
             displayName: 'Load Transformation Base Image'
-            enabled: false
+            enabled: true
             inputs:
               targetType: 'inline'
               script: |      
@@ -248,7 +248,7 @@ stages:
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan Base Transformation Image'
-            enabled: false
+            enabled: true
             inputs:
               twistlockService: 'Prisma Compute'
               artifact: '$(GCR.Name)/test_base_transformation:latest'
@@ -283,7 +283,7 @@ stages:
                 
           - task: Docker@2
             displayName: 'Publish OpenCV Image'
-            enabled: false
+            enabled: true
             inputs:
               repository: '$(GCR.Name)/test_base_py_opencv'
               command: push
@@ -291,7 +291,7 @@ stages:
 
           - task: Docker@2
             displayName: 'Publish Transformation Base Image'
-            enabled: false
+            enabled: true
             inputs:
               repository: '$(GCR.Name)/test_base_transformation'
               command: push
