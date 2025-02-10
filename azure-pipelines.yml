@@ -93,13 +93,15 @@ stages:
         displayName: 'Build Base Docker Images'
         steps:
           - task: DownloadPipelineArtifact@2
-            displayName: "Check for Existing Debian Base Image Artifact"
+            displayName: 'Download Base Image'
+            enabled: true
             inputs:
-              artifact: 'DEBIAN_BASE_IMAGE_ARTIFACT'
-              path: '$(Pipeline.Workspace)/DEBIAN_BASE_IMAGE_CHECK'
+              buildType: 'current'
+              artifactName: 'DEBIAN_BASE_IMAGE_ARTIFACT'
+              targetPath: '$(System.DefaultWorkingDirectory)'
             continueOnError: true
           - script: |
-              if [ -f "$(Pipeline.Workspace)/DEBIAN_BASE_IMAGE_CHECK/base_py_debian.tar" ]; then
+              if [ -f "$(System.DefaultWorkingDirectory)/base_py_debian.tar" ]; then
                 echo "Artifact already exists, skipping job."
                 echo "##vso[task.setvariable variable=SKIP_JOB;]true"
               else
