@@ -219,14 +219,14 @@ stages:
               targetType: 'inline'
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/base_py_opencv.tar
-                docker tag $(GCR.Name)/test_base_py_opencv:latest $(GCR.Name)/base_py_opencv:latest   
+                docker tag $(GCR.Name)/test_base_py_opencv:latest $(GCR.Name)/test_base_py_opencv:latest   
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan OPEN CV Image'
             enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
-              artifact: '$(GCR.Name)/base_py_opencv:latest'
+              artifact: '$(GCR.Name)/test_base_py_opencv:latest'
             continueOnError: false  # Fail the job if Prisma scan fails
 
           - task: DownloadPipelineArtifact@2
@@ -244,14 +244,14 @@ stages:
               targetType: 'inline'
               script: |      
                 docker load --input $(System.DefaultWorkingDirectory)/base_transformation.tar
-                docker tag $(GCR.Name)/test_base_transformation:latest $(GCR.Name)/base_transformation:latest   
+                docker tag $(GCR.Name)/test_base_transformation:latest $(GCR.Name)/test_base_transformation:latest   
                 
           - task: PrismaCloud.build-release-task.custom-build-release-task.prisma-cloud-compute-scan@3
             displayName: 'Prisma Scan Base Transformation Image'
             enabled: false
             inputs:
               twistlockService: 'Prisma Compute'
-              artifact: '$(GCR.Name)/base_transformation:latest'
+              artifact: '$(GCR.Name)/test_base_transformation:latest'
             continueOnError: false  # Fail the job if Prisma scan fails            
                 
           - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
@@ -277,7 +277,7 @@ stages:
             displayName: 'Publish Base Debian Image'
             enabled: true
             inputs:
-              repository: '$(GCR.Name)/base_py_debian'
+              repository: '$(GCR.Name)/test_base_py_debian'
               command: push
               tags: 'latest' 
                 
@@ -285,7 +285,7 @@ stages:
             displayName: 'Publish OpenCV Image'
             enabled: false
             inputs:
-              repository: '$(GCR.Name)/base_py_opencv'
+              repository: '$(GCR.Name)/test_base_py_opencv'
               command: push
               tags: 'latest'   
 
@@ -293,6 +293,6 @@ stages:
             displayName: 'Publish Transformation Base Image'
             enabled: false
             inputs:
-              repository: '$(GCR.Name)/base_image_transformation'
+              repository: '$(GCR.Name)/test_base_transformation'
               command: push
               tags: 'latest'
