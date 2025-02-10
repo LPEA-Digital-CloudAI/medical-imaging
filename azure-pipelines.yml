@@ -108,6 +108,14 @@ stages:
               targetType: 'inline'
               script: |
                docker save $(GCR.Name)/test_base_py_debian:latest -o $(System.DefaultWorkingDirectory)/base_py_debian.tar
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Base Docker to pipeline
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/base_py_debian.tar'
+              artifact: 'DEBIAN_BASE_IMAGE_ARTIFACT'
+              #publishLocation: 'pipeline'
                 
           - task: Docker@2
             displayName: 'Build OpenCV Base Image'
