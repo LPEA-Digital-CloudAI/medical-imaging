@@ -299,7 +299,7 @@ stages:
               
   - stage: DownloadBaseContainers
     displayName: 'Download containers using MCC Application pool'
-    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'))
     dependsOn: PathCheck
     pool:
       name: MCC Applications
@@ -355,7 +355,7 @@ stages:
     dependsOn:
       - PathCheck
       - DownloadBaseContainers
-    condition: and(succeeded(), eq(dependencies.DownloadBaseContainers.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.DownloadBaseContainers.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'))
     pool:
       name: Azure Pipelines
     jobs:
@@ -411,7 +411,7 @@ stages:
     dependsOn:
       - BuildTransformation
       - PathCheck
-    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.BuildTransformation.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'))
     pool:
       name: MCC Applications
     jobs:
