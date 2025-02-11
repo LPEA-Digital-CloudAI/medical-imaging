@@ -470,7 +470,7 @@ stages:
               command: push
               tags: 'latest'
               
-- stage: DownloadDebianBaseContainer
+  - stage: DownloadDebianBaseContainer
     displayName: 'Download containers using MCC Application pool'
     condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
     dependsOn: PathCheck
@@ -642,4 +642,3 @@ stages:
               repository: '$(GCR.Name)/test_orchestrator'
               command: push
               tags: 'latest'
-
