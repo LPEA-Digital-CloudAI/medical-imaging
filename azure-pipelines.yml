@@ -326,12 +326,13 @@ stages:
             env:
               SA_TOKEN: $(VaultOutput.VaultResult)
 
-          - task: Docker@2
+          - task: Bash@3
             displayName: 'Download Base Transformation Image'
             enabled: true
             inputs:
-              command: pull
-              repository: '$(GCR.Name)/test_base_transformation:latest'
+              targetType: 'inline'
+              script: |
+                docker pull $(GCR.Name)/test_base_transformation:latest
               
           - task: Bash@3
             displayName: Save Base Transformation Image
