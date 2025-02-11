@@ -460,6 +460,7 @@ stages:
  - stage: DownloadBaseContainers
     displayName: 'Download containers using MCC Application pool'
     condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
+    dependsOn: PathCheck
     pool:
       name: MCC Applications
     jobs:
