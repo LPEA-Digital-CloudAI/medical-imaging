@@ -377,7 +377,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |      
-                docker load --input $(System.DefaultWorkingDirectory)/base_transformation.tar
+                docker load --input $(System.DefaultWorkingDirectory)/test_base_transformation.tar
                 docker tag $(GCR.Name)/test_base_transformation:latest $(GCR.Name)/test_base_transformation:latest   
                 
           - task: Docker@2
