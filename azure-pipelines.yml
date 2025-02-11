@@ -455,9 +455,9 @@ stages:
             inputs:
               repository: '$(GCR.Name)/test_ilm_worker'
               command: push
-              tags: 'latest'   
+              tags: 'latest
               
- - stage: DownloadBaseContainers
+  - stage: DownloadBaseContainers
     displayName: 'Download containers using MCC Application pool'
     condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.PathologyChanged'], 'true'))
     dependsOn: PathCheck
