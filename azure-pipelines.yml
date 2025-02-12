@@ -642,8 +642,7 @@ stages:
               repository: '$(GCR.Name)/test_orchestrator'
               command: push
               tags: 'latest'
-
-    - stage: BuildDicomProxy
+  - stage: BuildDicomProxy
     displayName: 'Build DicomProxy Images'
     dependsOn:
       - PathCheck
