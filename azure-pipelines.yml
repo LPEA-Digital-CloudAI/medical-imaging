@@ -304,7 +304,7 @@ stages:
     pool:
       name: MCC Applications
     jobs:
-      - job: MCCPublishTransformationArtifact
+      - job: MCCPublishBaseContainerArtifact
         steps:
           - checkout: none
           - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
@@ -477,7 +477,7 @@ stages:
     pool:
       name: MCC Applications
     jobs:
-      - job: MCCPublishOrchestratorArtifact
+      - job: MCCPublishDebianBaseContainerArtifact
         steps:
           - checkout: none
           - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
