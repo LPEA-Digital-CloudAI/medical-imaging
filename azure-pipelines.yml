@@ -299,7 +299,7 @@ stages:
               
   - stage: DownloadBaseContainers
     displayName: 'Download containers using MCC Application pool'
-    condition: and(succeeded(), or(eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.DicomProxyChanged'], 'true')))
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'))
     dependsOn: PathCheck
     pool:
       name: MCC Applications
@@ -472,7 +472,7 @@ stages:
               
   - stage: DownloadDebianBaseContainer
     displayName: 'Download containers using MCC Application pool'
-    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
+    condition: and(succeeded(), or(eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.DicomProxyChanged'], 'true')))
     dependsOn: PathCheck
     pool:
       name: MCC Applications
