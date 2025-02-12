@@ -528,7 +528,7 @@ stages:
     dependsOn:
       - PathCheck
       - DownloadDebianBaseContainer
-    condition: and(succeeded(), eq(dependencies.DownloadBaseContainers.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.DownloadDebianBaseContainer.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
     pool:
       name: Azure Pipelines
     jobs:
