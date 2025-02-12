@@ -297,7 +297,7 @@ stages:
               command: push
               tags: 'latest'
               
-  - stage: DownloadBaseContainers
+  - stage: DownloadBaseTransformationContainer
     displayName: 'Download containers using MCC Application pool'
     condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'))
     dependsOn: PathCheck
@@ -354,7 +354,7 @@ stages:
     displayName: 'Build Transformation Images'
     dependsOn:
       - PathCheck
-      - DownloadBaseContainers
+      - DownloadBaseTransformationContainer
     condition: and(succeeded(), eq(dependencies.DownloadBaseContainers.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.TransformationChanged'], 'true'))
     pool:
       name: Azure Pipelines
@@ -472,7 +472,7 @@ stages:
               
   - stage: DownloadDebianBaseContainer
     displayName: 'Download containers using MCC Application pool'
-    condition: and(succeeded(), or(eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.DicomProxyChanged'], 'true')))
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
     dependsOn: PathCheck
     pool:
       name: MCC Applications
@@ -642,12 +642,65 @@ stages:
               repository: '$(GCR.Name)/test_orchestrator'
               command: push
               tags: 'latest'
+              
+  - stage: DownloadOpenCVBaseContainer
+    displayName: 'Download containers using MCC Application pool'
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
+    dependsOn: PathCheck
+    pool:
+      name: MCC Applications
+    jobs:
+      - job: MCCPublishOpenCVBaseContainerArtifact
+        steps:
+          - checkout: none
+          - task: mclm.MCCVaultIntegration.MCCVaultIntegration.MCCVaultIntegration@1
+            name: VaultOutput
+            displayName: 'MCC Vault Integration'
+            enabled: true
+            inputs:
+              vaultActionType: 'gcpCreds'
+              gcpSecretType: 'token'
+              GcpCredRoleset: $(Vault.Roleset)
+              Namespace: $(Vault.Namespace)
+              RoleId: $(Vault.RoleId)
+              SecretId: $(Vault.SecretId)
+              HostUri: $(Vault.Address)
+
+          - script: 'docker login -u oauth2accesstoken -p $SA_TOKEN https://$(GCR.Name)'
+            displayName: 'Authenticate to Container Registry'
+            enabled: true
+            env:
+              SA_TOKEN: $(VaultOutput.VaultResult)
+
+          - task: Bash@3
+            displayName: 'Download Open CV Base Image'
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+                docker pull $(GCR.Name)/test_base_py_opencv:latest
+              
+          - task: Bash@3
+            displayName: Save Base Debian Image
+            enabled: true
+            inputs:
+              targetType: 'inline'
+              script: |
+               docker save $(GCR.Name)/test_base_py_opencv:latest -o $(System.DefaultWorkingDirectory)/test_base_py_opencv.tar
+               
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Base Debian Image to pipeline
+            enabled: true
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/test_base_py_opencv.tar'
+              artifact: 'OPENCV_BASE_IMAGE_ARTIFACT'
+              
   - stage: BuildDicomProxy
     displayName: 'Build DicomProxy Images'
     dependsOn:
       - PathCheck
-      - DownloadDebianBaseContainer
-    condition: and(succeeded(), eq(dependencies.DownloadDebianBaseContainer.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.DicomProxyChanged'], 'true'))
+      - DownloadOpenCVBaseContainer
+    condition: and(succeeded(), eq(dependencies.DownloadOpenCVBaseContainer.result, 'succeeded'), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.DicomProxyChanged'], 'true'))
     pool:
       name: Azure Pipelines
     jobs:
@@ -656,21 +709,21 @@ stages:
         steps:
 
           - task: DownloadPipelineArtifact@2
-            displayName: 'Download Debian Base Image'
+            displayName: 'Download Open CV Base Image'
             enabled: true
             inputs:
               buildType: 'current'
-              artifactName: 'DEBIAN_BASE_IMAGE_ARTIFACT'
+              artifactName: 'OPENCV_BASE_IMAGE_ARTIFACT'
               targetPath: '$(System.DefaultWorkingDirectory)'
               
           - task: Bash@3
-            displayName: 'Load Debian Base Image'
+            displayName: 'Load Open CV  Base Image'
             enabled: true
             inputs:
               targetType: 'inline'
               script: |      
-                docker load --input $(System.DefaultWorkingDirectory)/test_base_py_debian.tar
-                docker tag $(GCR.Name)/test_base_py_debian:latest $(GCR.Name)/test_base_py_debian:latest   
+                docker load --input $(System.DefaultWorkingDirectory)/test_base_py_opencv.tar
+                docker tag $(GCR.Name)/test_base_py_opencv:latest $(GCR.Name)/test_base_py_opencv:latest   
                 
           - task: Docker@2
             displayName: 'Build DicomProxy Image'
@@ -681,7 +734,7 @@ stages:
               Dockerfile: pathology/dicom_proxy/Dockerfile
               tags: 'latest'
               buildContext: .
-              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_debian:latest'
+              arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_opencv:latest'
 
           - task: Bash@3
             displayName: Save Docker Image
