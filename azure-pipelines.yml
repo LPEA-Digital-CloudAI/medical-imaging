@@ -645,7 +645,7 @@ stages:
               
   - stage: DownloadOpenCVBaseContainer
     displayName: 'Download containers using MCC Application pool'
-    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.OrchestratorChanged'], 'true'))
+    condition: and(succeeded(), eq(dependencies.PathCheck.outputs['CheckPathChanges.ChangedDirectories.DicomProxyChanged'], 'true'))
     dependsOn: PathCheck
     pool:
       name: MCC Applications
