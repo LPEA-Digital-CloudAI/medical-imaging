@@ -678,7 +678,7 @@ stages:
             inputs:
               repository: '$(GCR.Name)/test_dicom_proxy'
               command: build
-              Dockerfile: pathology/dicom_proxy/rest_server/Dockerfile
+              Dockerfile: pathology/dicom_proxy/Dockerfile
               tags: 'latest'
               buildContext: .
               arguments: '--build-arg BASE_CONTAINER=$(GCR.Name)/test_base_py_debian:latest'
