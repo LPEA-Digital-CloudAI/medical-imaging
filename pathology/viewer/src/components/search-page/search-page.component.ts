@@ -115,6 +115,16 @@ export class SearchPageComponent implements OnInit, OnChanges, OnDestroy {
     if (this.searchOnLoad && this.searchTextDefault) {
       this.search();
     }
+    if (this.forceUpperCase) {
+      this.searchText.valueChanges
+        .pipe(takeUntil(this.destroyed$))
+        .subscribe(value => {
+          const upper = value.toUpperCase();
+          if (value !== upper) {
+            this.searchText.setValue(upper, { emitEvent: false });
+          }
+        });
+    }
   }
 
   ngOnDestroy() {
