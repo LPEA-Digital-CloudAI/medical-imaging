@@ -17,7 +17,9 @@
 <div class="image-viewer-page">
     <image-viewer-side-nav class="side-nav-menu">
     </image-viewer-side-nav>
-    <image-viewer-slides class="slides-menu">
+    <image-viewer-slides
+      *ngIf="caseId"
+      class="slides-menu">
     </image-viewer-slides>
   
     <div class="tile-viewer-wrapper">
