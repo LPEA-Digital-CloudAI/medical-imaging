@@ -64,6 +64,7 @@ export class ImageViewerPageComponent implements OnInit {
   isMultiViewScreenPicker = false;
   private mapAnimationSyncLock = false;
   multiViewScreenSelectedIndex = 0;
+  caseId = ''; 
 
   private readonly destroy$ = new ReplaySubject();
 
@@ -131,7 +132,11 @@ export class ImageViewerPageComponent implements OnInit {
             }),
             )
         .subscribe();
-
+this.imageViewerPageStore.caseId$
+  .pipe(takeUntil(this.destroy$))
+  .subscribe(caseId => {
+    this.caseId = caseId;
+  });
     combineLatest([
       this.imageViewerPageStore.selectedSplitViewSlideDescriptor$,
       this.imageViewerPageStore.olMapBySlideDescriptorId$,

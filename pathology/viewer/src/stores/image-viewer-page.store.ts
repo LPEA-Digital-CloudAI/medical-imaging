@@ -45,7 +45,8 @@ import {UserService} from '../services/user.service';
  */
 @Injectable({ providedIn: 'root' })
 export class ImageViewerPageStore implements OnDestroy {
-    caseId = '';
+    //caseId = '';
+    caseId$ = new BehaviorSubject<string>('');
     iccProfile$ = new BehaviorSubject<IccProfileType>(IccProfileType.ADOBERGB);
 
 
@@ -765,26 +766,23 @@ export class ImageViewerPageStore implements OnDestroy {
                     let study: string =
                         indexSeries === -1 ? series : series.slice(0, indexSeries);
 
-                    if (this.caseId !== study) {
-                        this.caseId = '';
-                    }
-                    if (!this.caseId) {
-                        this.caseId = study;
-                        study = '';
-                    }
-
-
-
-                    if (this.caseId && this.caseId !== study) {
-                        this.slideApiService.getSlidesForCase(this.caseId)
-                            .subscribe((slides) => {
-                                const slideDescriptorsByCaseId =
-                                    this.slideDescriptorsByCaseId$.value;
-                                slideDescriptorsByCaseId.set(this.caseId, slides);
-                                this.slideDescriptorsByCaseId$.next(
-                                    slideDescriptorsByCaseId);
-                            });
-                    }
+                        // Only emit when caseId changes
+                        if (this.caseId$.value !== study) {
+                            // Set to empty before loading new slides
+                            this.caseId$.next('');
+                            // Fetch slides, then set caseId
+                            if (study) {
+                                this.slideApiService.getSlidesForCase(study)
+                                    .subscribe((slides) => {
+                                        const slideDescriptorsByCaseId =
+                                            this.slideDescriptorsByCaseId$.value;
+                                        slideDescriptorsByCaseId.set(study, slides);
+                                        this.slideDescriptorsByCaseId$.next(slideDescriptorsByCaseId);
+                                        // Now set caseId to show slides component
+                                        this.caseId$.next(study);
+                                    });
+                            }
+                        }
 
                     const splitViewSlideDescriptors = series.split(',').map((a => {
                         if (!a) return undefined;
