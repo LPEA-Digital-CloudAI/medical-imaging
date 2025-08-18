@@ -410,31 +410,31 @@ export class SlideApiService {
   }
 
   getSlidesForCase(caseId: string): Observable<SlideDescriptor[]> {
-    return this.dicomwebService.getInstancesByStudy(caseId).pipe(
-      map(instances => {
-        if (!instances) {
-          return [];
-        }
+    return this.dicomwebService.getAllSeriesByStudy(caseId).pipe(
+      map(seriesList => {
+        if (!seriesList) return [];
 
         const slides = new Map<string, SlideDescriptor>();
-        for (const instance of instances) {
+        for (const series of seriesList) {
           const seriesInstanceUID =
-            instance[DicomTag.SERIES_INSTANCE_UID]?.Value?.[0] as
-            string;
-          if (!slides.has(seriesInstanceUID)) {
-            const slide: SlideDescriptor = {
+            series[DicomTag.SERIES_INSTANCE_UID]?.Value?.[0] as string;
+          const name =
+            series[DicomTag.CONTAINER_IDENTIFIER]?.Value?.[0] as string;
+
+          if (seriesInstanceUID && !slides.has(seriesInstanceUID)) {
+            slides.set(seriesInstanceUID, {
               id: `${caseId}/series/${seriesInstanceUID}`,
-              name: instance[DicomTag.CONTAINER_IDENTIFIER]?.Value?.[0] as
-                string,
-            };
-            slides.set(seriesInstanceUID, slide);
+              name,
+            });
           }
         }
-        const slideDescriptors = Array.from(slides.values()).sort((a, b) => {
-          return (a.name ?? '').localeCompare(b.name ?? '');
-        });
+
+        const slideDescriptors = Array.from(slides.values()).sort((a, b) =>
+          (a.name ?? '').localeCompare(b.name ?? '')
+        );
         this.slideDescriptors$.next(slideDescriptors);
         return slideDescriptors;
-      }));
+      })
+    );
   }
 }

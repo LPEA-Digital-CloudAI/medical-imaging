@@ -16,9 +16,8 @@
 
 import { Case, Patient, RECORD_ID_TYPE_META, RecordIdType, Slide } from '../interfaces/hierarchy_descriptor';
 import { DicomModality, DicomModel, DicomTag, PersonName, formatDate, formatName, isPatients } from '../interfaces/dicom_descriptor';
-import { Observable, defer, merge, throwError } from 'rxjs';
-import { catchError, filter, first, map, mergeAll, switchMap, toArray } from 'rxjs/operators';
-
+import { Observable, defer, merge, throwError, EMPTY } from 'rxjs';
+import { catchError, filter, first, map, mergeAll, switchMap, toArray, expand, reduce } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
@@ -351,7 +350,40 @@ export class DicomwebService {
             map((response: string) =>
                     (response && JSON.parse(response) as DicomModel[]) || []));
   }
+  private getSeriesByStudyPage(
+      pathToStudy: string,
+      dicomModality: DicomModality = DicomModality.SLIDE_MICROSCOPY,
+      offset = 0,
+      limit = 200,
+    ): Observable<DicomModel[]> {
+      const includefield = [
+        DicomTag.CONTAINER_IDENTIFIER,
+        DicomTag.SERIES_INSTANCE_UID,
+      ].join(',');
+      const url =
+        `${pathToStudy}/series?modality=${dicomModality}` +
+        `&includefield=${includefield}&limit=${limit}&offset=${offset}`;
+      return this.httpGetText(url).pipe(
+        first(),
+        map(response => (response && JSON.parse(response) as DicomModel[]) || []),
+      );
+    }
 
+  // Fetch all series for a study using limit/offset pagination
+  getAllSeriesByStudy(
+    pathToStudy: string,
+    dicomModality: DicomModality = DicomModality.SLIDE_MICROSCOPY,
+    pageSize = 200,
+  ): Observable<DicomModel[]> {
+    return this.getSeriesByStudyPage(pathToStudy, dicomModality, 0, pageSize).pipe(
+      expand((page, i) =>
+        page.length === pageSize
+          ? this.getSeriesByStudyPage(pathToStudy, dicomModality, (i + 1) * pageSize, pageSize)
+          : EMPTY
+      ),
+      reduce((all, page) => all.concat(page), [] as DicomModel[]),
+    );
+  }
   // From case name (series path) get case id and patient information, without
   // fetching the list of slides.
   getStudyMeta(pathToStudy: string) {
