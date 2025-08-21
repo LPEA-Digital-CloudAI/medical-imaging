@@ -18,6 +18,8 @@
 ARG BASE_CONTAINER
 FROM ${BASE_CONTAINER}
 
+USER root
+
 RUN apt-get update && \
     apt-get install -y \
       git \
@@ -115,7 +117,7 @@ RUN rm -rf /usr/src/python; \
       \( -type d -a \( -name test -o -name tests -o -name idle_test \) \) \
       -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' -o -name 'libpython*.a' \) \) \
     \) -exec rm -rf '{}' +
-
+    
 # Remove packages installed above
 RUN apt-get purge --autoremove -y \
   git \
@@ -125,3 +127,5 @@ RUN apt-get purge --autoremove -y \
   cmake \
   unzip \
   zlib1g-dev
+
+USER NonRootUser

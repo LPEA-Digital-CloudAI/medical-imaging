@@ -21,6 +21,8 @@
 ARG BASE_CONTAINER
 FROM ${BASE_CONTAINER}
 
+USER root
+
 RUN apt-get update && \
     apt-get install -y \
       apt-utils \
@@ -87,18 +89,18 @@ RUN wget -O "boost_${BOOST_UNDERSCORE}.tar.gz" "https://archives.boost.io/releas
 ARG OPENSLIDE_VERSION="4.0.0"
 COPY /requirements.txt /requirements.txt
 RUN apt-get install -y libjpeg-dev ninja-build && \
-   wget -O "openslide-${OPENSLIDE_VERSION}.tar.gz" "https://github.com/openslide/openslide/archive/refs/tags/v${OPENSLIDE_VERSION}.tar.gz" > /dev/null && \
+    wget -O "openslide-${OPENSLIDE_VERSION}.tar.gz" "https://github.com/openslide/openslide/archive/refs/tags/v${OPENSLIDE_VERSION}.tar.gz" > /dev/null && \
    tar xvzf "openslide-${OPENSLIDE_VERSION}.tar.gz"  > /dev/null && \
-   rm "openslide-${OPENSLIDE_VERSION}.tar.gz" && \
-   cd "openslide-${OPENSLIDE_VERSION}" && \
-   pip3 install -r /requirements.txt --require-hashes && \
-   meson setup /openslide-build && \
-   meson compile -C /openslide-build && \
-   meson install -C /openslide-build && \
-   pip3 uninstall -y meson && \
-   rm -rf "/openslide-${OPENSLIDE_VERSION}" /openslide-build && \
-   rm /requirements.txt && \
-   apt-get purge --autoremove -y libjpeg-dev pkg-config ninja-build
+    rm "openslide-${OPENSLIDE_VERSION}.tar.gz" && \
+    cd "openslide-${OPENSLIDE_VERSION}" && \
+    pip3 install -r /requirements.txt --require-hashes && \
+    meson setup /openslide-build && \
+    meson compile -C /openslide-build && \
+    meson install -C /openslide-build && \
+    pip3 uninstall -y meson && \
+    rm -rf "/openslide-${OPENSLIDE_VERSION}" /openslide-build && \
+    rm /requirements.txt && \
+    apt-get purge --autoremove -y libjpeg-dev pkg-config ninja-build
 # Enable WSI2DCM and Python to find Openslide library
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib/aarch64-linux-gnu
 
@@ -132,3 +134,5 @@ RUN apt-get purge --autoremove -y \
       libgdk-pixbuf2.0-dev \
       libglib2.0-dev && \
     apt-get autoremove -y
+
+USER NonRootUser
