@@ -135,6 +135,7 @@ class _ServiceAccountCredentials(user_auth_util.AuthSession):
           studies_query,
           headers=self.add_to_header({_ACCEPT: _APPLICATION_DICOM_JSON}),
           stream=False,
+          timeout=dicom_proxy_flags.outbound_http_timeout(),
       )
       try:
         response.raise_for_status()

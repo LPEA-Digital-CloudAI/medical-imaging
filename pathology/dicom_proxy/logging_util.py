@@ -14,10 +14,12 @@
 # ==============================================================================
 """Util methods for logging in DICOM Proxy."""
 
+import http
 import time
 from typing import Callable, Mapping
 
 import flask
+import requests
 
 from pathology.dicom_proxy import dicom_proxy_flags
 from pathology.dicom_proxy import flask_util
@@ -86,6 +88,20 @@ def log_exceptions(
         })
       cloud_logging_client.set_log_signature(log_signature)
       return func(*args, **kwargs)
+    except requests.exceptions.Timeout as exp:
+      cloud_logging_client.error('Upstream request timed out.', exp)
+      return flask.Response(
+          response='Upstream request timed out.',
+          status=http.HTTPStatus.GATEWAY_TIMEOUT,
+          content_type='text/plain; charset=utf-8',
+      )
+    except requests.exceptions.ConnectionError as exp:
+      cloud_logging_client.error('Upstream connection error.', exp)
+      return flask.Response(
+          response='Upstream connection error.',
+          status=http.HTTPStatus.BAD_GATEWAY,
+          content_type='text/plain; charset=utf-8',
+      )
     except Exception as exp:
       cloud_logging_client.error('An unexpected exception occurred.', exp)
       raise

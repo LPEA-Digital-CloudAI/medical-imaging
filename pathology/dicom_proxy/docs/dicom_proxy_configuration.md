@@ -205,9 +205,50 @@ The Proxy is implemented using [Flask](https://flask.palletsprojects.com/en/2.3.
 
 #### Environmental Variable: **<span style="color:green">GUNICORN_THREADS</span>**
 
-* Default Value: **5**
-* Description: Number of threads to run on each Process to handle user connections. For more information see [GUnicron docs](https://docs.gunicorn.org/en/latest/design.html). 
+* Default Value: **2**
+* Description: Number of threads to run on each Process to handle user connections. Kept low to reduce mutex contention in gRPC's abseil C-core; increase workers instead if more concurrency is needed. For more information see [GUnicron docs](https://docs.gunicorn.org/en/latest/design.html).
 
+
+#### Timeout Strategy
+
+The Proxy server uses a layered timeout strategy with consistent values across Nginx and Gunicorn. The defaults below are tuned so that each layer times out before the one above it, producing clean error responses instead of abrupt connection drops.
+
+| Layer | Setting | Default | Env Var |
+|---|---|---|---|
+| Nginx | `proxy_connect_timeout` | 30 s | *(nginx.conf)* |
+| Nginx | `proxy_read_timeout` / `proxy_send_timeout` | 300 s | *(nginx.conf)* |
+| Gunicorn | worker `timeout` | 300 s | `GUNICORN_TIMEOUT` |
+| Gunicorn | `graceful_timeout` | 30 s | `GUNICORN_GRACEFUL_TIMEOUT` |
+| Gunicorn | `keepalive` | 5 s | `GUNICORN_KEEPALIVE` |
+| Outbound HTTP | connect timeout | 30 s | `OUTBOUND_HTTP_CONNECT_TIMEOUT` |
+| Outbound HTTP | read timeout | 285 s | `OUTBOUND_HTTP_READ_TIMEOUT` |
+
+The outbound read timeout (285 s) is intentionally set 15 seconds below the Gunicorn worker timeout so that a hung upstream request fails cleanly with an HTTP 504 before Gunicorn forcibly terminates the worker (which would surface as *"upstream prematurely closed connection"* in Nginx logs).
+
+#### Environmental Variable: **<span style="color:green">GUNICORN_TIMEOUT</span>**
+
+* Default Value: **300**
+* Description: Gunicorn worker timeout in seconds. Should match or stay within the Nginx `proxy_read_timeout`.
+
+#### Environmental Variable: **<span style="color:green">GUNICORN_GRACEFUL_TIMEOUT</span>**
+
+* Default Value: **30**
+* Description: Gunicorn graceful timeout in seconds for worker restart/shutdown.
+
+#### Environmental Variable: **<span style="color:green">GUNICORN_KEEPALIVE</span>**
+
+* Default Value: **5**
+* Description: Gunicorn keepalive in seconds.
+
+#### Environmental Variable: **<span style="color:green">OUTBOUND_HTTP_CONNECT_TIMEOUT</span>**
+
+* Default Value: **30**
+* Description: Connect timeout in seconds for outbound HTTP requests to upstream services (e.g. DICOM store).
+
+#### Environmental Variable: **<span style="color:green">OUTBOUND_HTTP_READ_TIMEOUT</span>**
+
+* Default Value: **285**
+* Description: Read timeout in seconds for outbound HTTP requests. Set below the Gunicorn worker timeout to allow clean error propagation.
 
 ### Debug Flags (Recommended Leave Default Settings in Production)
 

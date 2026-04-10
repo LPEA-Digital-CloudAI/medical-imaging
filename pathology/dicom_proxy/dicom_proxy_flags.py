@@ -41,9 +41,60 @@ GUNICORN_WORKERS_FLG = flags.DEFINE_integer(
 
 GUNICORN_THREADS_FLG = flags.DEFINE_integer(
     'gunicorn_threads',
-    int(secret_flag_utils.get_secret_or_env('GUNICORN_THREADS', 5)),
+    int(secret_flag_utils.get_secret_or_env('GUNICORN_THREADS', 2)),
     'Number of threads each GUnicorn processes should launch',
 )
+
+# ---------------------------------------------------------------------------
+# Timeout flags – kept consistent with nginx.conf proxy_read_timeout.
+#   nginx  proxy_read_timeout  = 300 s  (outermost boundary)
+#   Gunicorn worker timeout    = 300 s  (matches nginx)
+#   outbound HTTP read timeout = 285 s  (15 s headroom so the request fails
+#                                        cleanly with a 504 before Gunicorn
+#                                        kills the worker)
+#   outbound HTTP connect      =  30 s
+# ---------------------------------------------------------------------------
+GUNICORN_TIMEOUT_FLG = flags.DEFINE_integer(
+    'gunicorn_timeout',
+    int(secret_flag_utils.get_secret_or_env('GUNICORN_TIMEOUT', 300)),
+    'Gunicorn worker timeout in seconds.',
+)
+
+GUNICORN_GRACEFUL_TIMEOUT_FLG = flags.DEFINE_integer(
+    'gunicorn_graceful_timeout',
+    int(secret_flag_utils.get_secret_or_env('GUNICORN_GRACEFUL_TIMEOUT', 30)),
+    'Gunicorn graceful timeout in seconds.',
+)
+
+GUNICORN_KEEPALIVE_FLG = flags.DEFINE_integer(
+    'gunicorn_keepalive',
+    int(secret_flag_utils.get_secret_or_env('GUNICORN_KEEPALIVE', 5)),
+    'Gunicorn keepalive in seconds.',
+)
+
+OUTBOUND_HTTP_CONNECT_TIMEOUT_FLG = flags.DEFINE_integer(
+    'outbound_http_connect_timeout',
+    int(secret_flag_utils.get_secret_or_env(
+        'OUTBOUND_HTTP_CONNECT_TIMEOUT', 30
+    )),
+    'Connect timeout in seconds for outbound HTTP requests.',
+)
+
+OUTBOUND_HTTP_READ_TIMEOUT_FLG = flags.DEFINE_integer(
+    'outbound_http_read_timeout',
+    int(secret_flag_utils.get_secret_or_env(
+        'OUTBOUND_HTTP_READ_TIMEOUT', 285
+    )),
+    'Read timeout in seconds for outbound HTTP requests.',
+)
+
+
+def outbound_http_timeout() -> tuple[float, float]:
+  """Returns (connect_timeout, read_timeout) for outbound HTTP requests."""
+  return (
+      float(OUTBOUND_HTTP_CONNECT_TIMEOUT_FLG.value),
+      float(OUTBOUND_HTTP_READ_TIMEOUT_FLG.value),
+  )
 
 API_PORT_FLG = flags.DEFINE_integer('port', 8080, 'port to listen on')
 

@@ -13,5 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# gRPC's C-core (abseil) is not fork-safe.  In Gunicorn's prefork + gthread
+# model the master forks workers that then create thread pools; if gRPC state
+# was inherited from the master the internal mutexes can corrupt → crash.
+# GRPC_ENABLE_FORK_SUPPORT tells gRPC to re-initialise after fork().
+# GRPC_POLL_STRATEGY=poll avoids epoll fd-inheritance issues across forks.
+export GRPC_ENABLE_FORK_SUPPORT=1
+export GRPC_POLL_STRATEGY=poll
+
 /usr/sbin/nginx -c /nginx.conf -e stderr
 python3 -OO /pathology/dicom_proxy/server.pyc

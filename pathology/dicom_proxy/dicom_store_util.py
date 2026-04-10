@@ -319,7 +319,12 @@ def _get_dicom_json(
   Raises:
     DicomMetadataRequestError: HTTP error or error decoding dicomWeb response.
   """
-  response = requests.get(query.url, headers=query.headers, stream=False)
+  response = requests.get(
+      query.url,
+      headers=query.headers,
+      stream=False,
+      timeout=dicom_proxy_flags.outbound_http_timeout(),
+  )
   try:
     response.raise_for_status()
     metadata = response.json()
@@ -539,7 +544,11 @@ def delete_instance_from_dicom_store(
     headers = user_auth.add_to_header(
         {'Content-Type': 'application/dicom+json; charset=utf-8'}
     )
-    response = requests.delete(dicom_path, headers=headers)
+    response = requests.delete(
+        dicom_path,
+        headers=headers,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
     response.raise_for_status()
     cloud_logging_client.info(
         f'Deleted instance {dicom_path} from DICOM Store.', base_log
@@ -588,7 +597,12 @@ def upload_instance_to_dicom_store(
       proxy_const.LogKeywords.USER_EMAIL_OF_DICOMWEB_REQUEST: user_auth.email,
   }
   try:
-    response = requests.post(dicom_path, data=data, headers=headers)
+    response = requests.post(
+        dicom_path,
+        data=data,
+        headers=headers,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
     response.raise_for_status()
     cloud_logging_client.info(
         'Uploaded DICOM instance to DICOM store.', base_log
@@ -651,7 +665,12 @@ def upload_multipart_to_dicom_store(
       proxy_const.LogKeywords.USER_EMAIL_OF_DICOMWEB_REQUEST: user_auth.email,
   }
   try:
-    response = requests.post(dicom_path, data=multipart_data, headers=headers)
+    response = requests.post(
+        dicom_path,
+        data=multipart_data,
+        headers=headers,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
     response.raise_for_status()
     cloud_logging_client.warning(
         'Uploaded multipart data to DICOM store.', base_log
@@ -779,13 +798,27 @@ def dicom_store_proxy(params: Optional[List[str]] = None) -> flask.Response:
   # Proxy using same method called with
   # Stream data from proxy to caller to avoid fully loading response in server
   if method == flask_util.GET:
-    response = requests.get(url, headers=headers, stream=True)
+    response = requests.get(
+        url,
+        headers=headers,
+        stream=True,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
   elif method == flask_util.POST:
     response = requests.post(
-        url, headers=headers, stream=True, data=flask_util.get_data()
+        url,
+        headers=headers,
+        stream=True,
+        data=flask_util.get_data(),
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
     )
   elif method == flask_util.DELETE:
-    response = requests.delete(url, headers=headers, stream=True)
+    response = requests.delete(
+        url,
+        headers=headers,
+        stream=True,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
   else:
     msg = 'Unsupported HTTP request method.'
     cloud_logging_client.error(msg, {'method': method, 'url': url})
@@ -794,6 +827,41 @@ def dicom_store_proxy(params: Optional[List[str]] = None) -> flask.Response:
         status=http.HTTPStatus.BAD_REQUEST.value,
         content_type='text/plain',
     )
+
+  # For error responses, buffer the body (typically small) so we can log a
+  # useful preview without interfering with streaming of large successful
+  # payloads.
+  if response.status_code >= http.HTTPStatus.BAD_REQUEST:
+    content_type = flask_util.get_key_value(response.headers, 'content-type', '')
+    body_preview = ''
+    try:
+      if content_type.startswith('text/') or 'json' in content_type:
+        body_preview = response.content[:2048].decode('utf-8', errors='replace')
+      else:
+        # Avoid logging binary bodies.
+        _ = response.content  # buffer so we can return it below
+    except Exception:
+      body_preview = ''
+    cloud_logging_client.warning(
+        'DICOM store proxy request failed.',
+        {
+            'status_code': response.status_code,
+            'proxy_method': method,
+            'proxied_url': url,
+            'content_type': content_type,
+            'body_preview': body_preview,
+        },
+    )
+    fl_response = flask.Response(
+        response=response.content,
+        status=response.status_code,
+        direct_passthrough=False,
+    )
+    fl_response.headers.clear()
+    for key, value in response.headers.items():
+      fl_response.headers[key] = value
+    return fl_response
+
   fl_response = flask.Response(
       _stream_proxy_content(response),
       status=response.status_code,

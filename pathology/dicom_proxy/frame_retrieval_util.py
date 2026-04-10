@@ -139,7 +139,11 @@ class RequestSessionHandler:
     """Returns request session."""
     if self._session is None:
       self._session = requests.Session()
-    return self._session.get(url, headers=headers)
+    return self._session.get(
+        url,
+        headers=headers,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
 
   def __getstate__(self) -> MutableMapping[str, Any]:
     """Do not pickle session."""
@@ -218,10 +222,23 @@ def get_raw_frame_data(
       render_params,
   )
   if session_handler is None:
-    response = requests.get(transaction.url, headers=transaction.headers)
+    response = requests.get(
+        transaction.url,
+        headers=transaction.headers,
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
+    )
   else:
     response = session_handler.session_get(transaction.url, transaction.headers)
   if response.status_code != http.client.OK:
+    cloud_logging_client.warning(
+        'DICOM store returned non-OK for frame request.',
+        {
+            'status_code': response.status_code,
+            'url': transaction.url,
+            'accept': transaction.headers.get(_ACCEPT),
+            'content_type': response.headers.get(_CONTENT_TYPE),
+        },
+    )
     raise DicomFrameRequestError(response)
   try:
     multipart_data = requests_toolbelt.MultipartDecoder.from_response(response)
@@ -308,8 +325,21 @@ def _get_rendered_frame(transaction: _DicomStoreFrameTransaction) -> FrameData:
       and result.value != CACHE_LOADING_FRAME_BYTES
   ):
     return FrameData(result.value, False)
-  response = requests.get(transaction.url, headers=transaction.headers)
+  response = requests.get(
+      transaction.url,
+      headers=transaction.headers,
+      timeout=dicom_proxy_flags.outbound_http_timeout(),
+  )
   if response.status_code != http.client.OK:
+    cloud_logging_client.warning(
+      'DICOM store returned non-OK for rendered frame request.',
+      {
+        'status_code': response.status_code,
+        'url': transaction.url,
+        'accept': transaction.headers.get(_ACCEPT),
+        'content_type': response.headers.get(_CONTENT_TYPE),
+      },
+    )
     raise DicomFrameRequestError(response)
   received_content_type = response.headers.get(_CONTENT_TYPE)
   expected_content_type = transaction.headers.get(_ACCEPT)

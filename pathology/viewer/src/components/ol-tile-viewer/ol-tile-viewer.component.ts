@@ -34,7 +34,7 @@ import {ImageStatic, TileDebug, Vector, XYZ} from 'ol/source';
 import {Circle, Fill, RegularShape, Stroke, Style} from 'ol/style';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import TileState from 'ol/TileState';
-import {catchError, tap} from 'rxjs/operators';
+import {catchError, delay, retry, tap} from 'rxjs/operators';
 
 import {environment} from '../../environments/environment';
 import {AssociatedImageType} from '../../interfaces/dicom_descriptor';
@@ -176,6 +176,7 @@ export class OlTileViewerComponent implements OnChanges {
   flatImage() {
     if (!this.slideInfo) return;
     const slideInfo = this.slideInfo;
+    const path = (this.slideDescriptor?.id as string) ?? '';
     // Map views always need a projection.  Here we just want to map image
     // coordinates directly to map coordinates, so we create a projection that
     // uses the image extent in pixels.
@@ -200,8 +201,6 @@ export class OlTileViewerComponent implements OnChanges {
       // of tiles in previous rows (y*tilesPerWidth).
       const frame = slideLevel.properties[0].frames;
       const instanceUid = slideLevel?.properties[0].instanceUid ?? '';
-
-      const path = (this.slideDescriptor?.id as string) ?? '';
 
       this.dicomwebService.getEncodedImageTile(path, instanceUid, frame)
           .subscribe((imageData: string) => {
@@ -373,6 +372,13 @@ export class OlTileViewerComponent implements OnChanges {
   }
 
   initializeOpenLayerSlideViewer(slideInfo: SlideInfo) {
+    // Capture a stable path for this viewer instance.
+    // The tileLoadFunction closure uses a slide-specific z->level mapping; if
+    // we read `this.slideDescriptor.id` dynamically and the input changes while
+    // tiles are still loading, we can accidentally request tiles for slide A
+    // against the series path for slide B, which can manifest as transient 404s.
+    const path = (this.slideDescriptor?.id as string) ?? '';
+
     // Pair levels so resolutions and tileSizes stay aligned after sorting.
     interface Entry {
       resX: number;
@@ -451,7 +457,6 @@ export class OlTileViewerComponent implements OnChanges {
 
       const instanceUid = slideLevel?.properties[0]?.instanceUid ?? '';
       const downSampleMultiplier = slideLevel.downSampleMultiplier ?? 0;
-      const path = (this.slideDescriptor?.id as string) ?? '';
 
       const isYOutOfBound =
           (y + 1) === tilesPerHeight && (slideLevel.height % ts) !== 0;
@@ -461,6 +466,11 @@ export class OlTileViewerComponent implements OnChanges {
           .getEncodedImageTile(
               path, instanceUid, frame, downSampleMultiplier, this.iccProfile)
           .pipe(
+              // Retry on server errors (5xx / network failures) that are
+              // typically transient under load.  Two retries with a short
+              // back-off keeps the user experience smooth without hammering
+              // the tile server.
+              retry({count: 2, delay: 500}),
               tap((imageData: string) => {
                 const imageUrl = this.imageDataToImageUrl(imageData);
                 if ((imageTile instanceof ImageTile)) {

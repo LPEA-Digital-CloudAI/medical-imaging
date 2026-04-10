@@ -80,6 +80,7 @@ def _get_email_from_bearer_token(bearer_token: str) -> str:
         headers={
             proxy_const.HeaderKeywords.AUTH_HEADER_KEY: bearer_token,
         },
+        timeout=dicom_proxy_flags.outbound_http_timeout(),
     )
     json_response = response.json()
     email = json_response['email']

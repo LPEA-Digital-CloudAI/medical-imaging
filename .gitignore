@@ -35,7 +35,11 @@ yarn-error.log
 /libpeerconnection.log
 testem.log
 /pathology/viewer/typings
+/pathology/viewer/.env
 
+# Python
+**/__pycache__/
+*.pyc
 # System files
 .DS_Store
 Thumbs.db

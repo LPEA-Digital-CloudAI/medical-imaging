@@ -15,8 +15,16 @@
 """Flask REST server for Tile-server."""
 
 import http
+import os
 import time
 from typing import Optional
+
+# gRPC's abseil C-core is not fork-safe.  Set these before any google-cloud
+# library is imported so that gRPC re-initialises its internal state after
+# Gunicorn forks worker processes.  Also set in start_server.sh, but repeated
+# here as a safety-net in case the module is loaded outside the shell wrapper.
+os.environ.setdefault('GRPC_ENABLE_FORK_SUPPORT', '1')
+os.environ.setdefault('GRPC_POLL_STRATEGY', 'poll')
 
 from absl import app as absl_app
 import flask
@@ -125,6 +133,24 @@ def add_security_headers(response: flask.Response) -> flask.Response:
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "0"
 
+    # If Healthcare API logs show fast success but the client sees a 4xx/5xx,
+    # it can mean the tile server generated the error locally (routing/logic)
+    # or the upstream error response did not get correlated. Emit a concise
+    # structured log for failing DICOMweb requests to enable correlation.
+    try:
+      if response.status_code >= http.HTTPStatus.BAD_REQUEST and '/dicomWeb/' in flask.request.path:
+        cloud_logging_client.warning(
+            'Tile server returned HTTP error.',
+            {
+                'status_code': int(response.status_code),
+                'method': flask.request.method,
+                'path': flask.request.full_path,
+            },
+        )
+    except Exception:
+      # Never allow logging issues to affect responses.
+      pass
+
     return response
 
 @flask_app.route('/', methods=['GET', 'POST'], endpoint='healthcheck')
@@ -181,7 +207,14 @@ class GunicornApplication(BaseApplication):
     self.cfg.set('worker_class', 'gthread')
     self.cfg.set('workers', str(dicom_proxy_flags.GUNICORN_WORKERS_FLG.value))
     self.cfg.set('threads', str(dicom_proxy_flags.GUNICORN_THREADS_FLG.value))
+    self.cfg.set('timeout', str(dicom_proxy_flags.GUNICORN_TIMEOUT_FLG.value))
+    self.cfg.set('graceful_timeout', str(dicom_proxy_flags.GUNICORN_GRACEFUL_TIMEOUT_FLG.value))
+    self.cfg.set('keepalive', str(dicom_proxy_flags.GUNICORN_KEEPALIVE_FLG.value))
     self.cfg.set('bind', 'unix:/tmp/gunicorn.sock')
+    # Load the app in the master before forking so that google-cloud
+    # libraries import once; workers inherit a clean copy-on-write image
+    # and gRPC re-initialises via GRPC_ENABLE_FORK_SUPPORT.
+    self.cfg.set('preload_app', True)
     self.cfg.set('accesslog', '-')
     self.cfg.set(
         'access_log_format', '%(u)s "%(r)s" %(s)s "%(f)s" "%({body}i)s"'
